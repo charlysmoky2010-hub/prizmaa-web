@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-14",
+  "product": "PRIZMAA queer male flirting dating hookups",
+  "website": "LOCAL_HTTP_VERIFIED",
+  "private_beta_ui": "LOCAL_HTTP_VERIFIED",
+  "api_health": "LOCAL_HTTP_VERIFIED",
+  "next_build": "PASS",
+  "typescript": "PASS",
+  "sqlite_backend": "IMPLEMENTED_MIGRATED",
+  "signup_login": "INTEGRATION_TESTED_PASS",
+  "mutual_matches_messages": "INTEGRATION_TESTED_PASS",
+  "block_report_delete": "INTEGRATION_TESTED_PASS",
+  "automated_auth_e2e_test": "VERIFIED_PASS_37_OF_37",
+  "avatar_builder": "IMPLEMENTED",
+  "queer_roles_and_tags": "IMPLEMENTED",
+  "search_and_filters": "IMPLEMENTED",
+  "unread_message_counters": "IMPLEMENTED",
+  "gdpr_data_export": "IMPLEMENTED",
+  "monetization_tier": {
+    "plan_name": "PRIZMAA Plus Founder Pass",
+    "price_eur": 9.99,
+    "feature": "See Who Liked You (Paywall + Instant 1-Click Match)",
+    "stripe_link": "https://buy.stripe.com/5kQ28r884dC670T9b36Na2f",
+    "status": "LIVE_INTEGRATED"
+  },
+  "live_chat_polling": "IMPLEMENTED",
+  "local_env_configured": "PRIZMAA_LOCAL_MVP=1",
+  "public_release": "NOT_DEPLOYED",
+  "data_storage": "LOCAL_SQLITE_GIT_IGNORED",
+  "privacy": "ADULT_SELF_DECLARATION_ONLY"
+}

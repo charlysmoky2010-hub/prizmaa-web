@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "project": "PRIZMAA GAY/QUEER SOCIAL PLATFORM",
+  "observed_date_local": "2026-10-12",
+  "states": {
+    "website": "LOCAL_BUILD_AND_HTTP_VERIFIED",
+    "interactive_app": "LOCAL_BUILD_AND_HTTP_VERIFIED",
+    "pwa_manifest": "HTTP_VERIFIED",
+    "pwa_png_icon": "HTTP_VERIFIED",
+    "mac_preview": "LOOPBACK_ONLY",
+    "plugin": "CREATED_PRIVATE",
+    "public_deployment": "NOT_PERFORMED",
+    "native_app_store": "NOT_PERFORMED",
+    "actual_users": "NOT_VERIFIED",
+    "real_messaging": "NOT_IMPLEMENTED",
+    "real_payments": "NOT_IMPLEMENTED",
+    "moderation": "NOT_IMPLEMENTED"
+  },
+  "routes": {
+    "website": "http://127.0.0.1:3337/prizmaa",
+    "app": "http://127.0.0.1:3337/prizmaa/app"
+  },
+  "plugin": {
+    "id": "plugins_6acd2e7f637c8191a5f4f2858c869435",
+    "url": "https://chatgpt.com/plugins/plugins_6acd2e7f637c8191a5f4f2858c869435",
+    "version": "1.0.0"
+  },
+  "evidence": {
+    "typescript": "PASS",
+    "next_build": "PASS",
+    "http_routes": [
+      "/prizmaa:200",
+      "/prizmaa/app:200",
+      "/prizmaa.webmanifest:200",
+      "/prizmaa-sw.js:200",
+      "/prizmaa-icon-192.png:200"
+    ]
+  },
+  "safety": {
+    "example_profiles": "FICTIONAL",
+    "example_events": "FICTIONAL",
+    "interaction_storage": "CLIENT_SESSION_STATE",
+    "location_access": "NONE",
+    "18_plus_gate": "SELF_DECLARATION_NOT_VERIFIED_AGE"
+  },
+  "preservation": "Existing root landing and waitlist files were not overwritten."
+}

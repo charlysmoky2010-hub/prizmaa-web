@@ -1,0 +1,26 @@
+{
+  "id": "/prizmaa/app",
+  "name": "PRIZMAA — Queer Connections",
+  "short_name": "PRIZMAA",
+  "description": "Privacy-first queer connection and community — early fictional prototype for adults 18+.",
+  "start_url": "/prizmaa/app",
+  "scope": "/prizmaa/",
+  "display": "standalone",
+  "background_color": "#100c17",
+  "theme_color": "#100c17",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/prizmaa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/prizmaa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

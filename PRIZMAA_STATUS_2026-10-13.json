@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-13",
+  "product": "PRIZMAA queer male flirting dating hookups",
+  "website": "LOCAL_HTTP_VERIFIED",
+  "private_beta_ui": "LOCAL_HTTP_VERIFIED",
+  "api_health": "LOCAL_HTTP_VERIFIED",
+  "next_build": "PASS",
+  "typescript": "PASS",
+  "sqlite_backend": "IMPLEMENTED",
+  "signup_login": "INTEGRATION_TESTED_PASS",
+  "mutual_matches_messages": "INTEGRATION_TESTED_PASS",
+  "block_report_delete": "INTEGRATION_TESTED_PASS",
+  "automated_auth_e2e_test": "VERIFIED_PASS_22_OF_22",
+  "live_chat_polling": "IMPLEMENTED",
+  "local_env_configured": "PRIZMAA_LOCAL_MVP=1",
+  "public_release": "NOT_DEPLOYED",
+  "data_storage": "LOCAL_SQLITE_GIT_IGNORED",
+  "privacy": "ADULT_SELF_DECLARATION_ONLY"
+}
