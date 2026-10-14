@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { getOrCreateLocalIdentity, emergencyPurgeAll, setCamouflageMode, isCamouflageActive, type P2PIdentity } from "@/lib/prizmaa/p2p-shield";
 
 type Profile = {
   id: string;
@@ -76,6 +77,8 @@ export default function Beta() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [hide, setHide] = useState(false);
+  const [camouflaged, setCamouflaged] = useState(false);
+  const [p2pId, setP2pId] = useState<P2PIdentity | null>(null);
 
   // Discovery filtering
   const [intentFilter, setIntentFilter] = useState("All");
@@ -149,6 +152,22 @@ export default function Beta() {
         }
       });
   }, [refresh, updateCurrent]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setCamouflaged((prev) => {
+          const next = !prev;
+          setCamouflageMode(next);
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    if (isCamouflageActive()) setCamouflaged(true);
+    getOrCreateLocalIdentity().then(setP2pId).catch(() => {});
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Live chat polling
   useEffect(() => {
@@ -317,6 +336,61 @@ export default function Beta() {
     return true;
   });
 
+  if (camouflaged) {
+    return (
+      <main style={{ minHeight: "100vh", background: "#f8f6f0", color: "#2d2a26", fontFamily: "Georgia, serif", padding: "30px 20px" }}>
+        <div style={{ maxWidth: 700, margin: "auto", background: "#fff", padding: 36, borderRadius: 12, boxShadow: "0 4px 20px rgba(0,0,0,0.06)", border: "1px solid #e6e2d8" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #b58d59", paddingBottom: 16, marginBottom: 24 }}>
+            <div>
+              <span style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "#8c6d46", fontWeight: "bold" }}>Atölye Not Defteri</span>
+              <h1 style={{ fontSize: 26, margin: "4px 0 0", color: "#1a1816" }}>Geleneksel Ebru &amp; Renk Harmonisi</h1>
+            </div>
+            <button
+              onClick={() => { setCamouflaged(false); setCamouflageMode(false); }}
+              style={{ background: "#f0ece1", border: "1px solid #d4ccb8", padding: "8px 14px", borderRadius: 6, fontSize: 12, cursor: "pointer", color: "#54493b" }}
+            >
+              Kilidi Aç ↩
+            </button>
+          </div>
+
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: "#4a453e" }}>
+            Tekne hazırlığında kitre suyu kıvamı (1 litre ılık suya 25–30 gr kaliteli geven kitresi). Dinlendirme süresi: 24–48 saat tülbentten süzme.
+          </p>
+
+          <h3 style={{ fontSize: 17, margin: "24px 0 12px", color: "#8c6d46" }}>Pigment Karışımları &amp; Öd Oranları</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+            {[
+              { name: "Lapis Lazuli (Mavi)", hex: "#2b4c7e", note: "3 damla öd / battal zemin" },
+              { name: "Oksit Sarı (Toprak)", hex: "#c49a45", note: "2 damla öd / dağılma hızı yüksek" },
+              { name: "Gül Kurusu (Kök Kırmızı)", hex: "#a3485e", note: "4 damla öd / ikinci katman" }
+            ].map((c) => (
+              <div key={c.name} style={{ background: "#faf8f5", border: "1px solid #ede8de", padding: 12, borderRadius: 8 }}>
+                <div style={{ width: "100%", height: 32, background: c.hex, borderRadius: 4, marginBottom: 8 }} />
+                <strong style={{ fontSize: 13, display: "block" }}>{c.name}</strong>
+                <small style={{ fontSize: 11, color: "#7a7267" }}>{c.note}</small>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 32, paddingTop: 20, borderTop: "1px dashed #d9d2c5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#8c8275" }}>Çalışma modu: Aktif kayıt defteri</span>
+            <button
+              onClick={() => {
+                if (window.confirm("DİKKAT: Cihazdaki tüm veriler, oturumlar ve geçici kayıtlar anında tamamen silinsin mi?")) {
+                  emergencyPurgeAll();
+                  window.location.reload();
+                }
+              }}
+              style={{ background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca", padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: "bold", cursor: "pointer" }}
+            >
+              🧹 Tüm İzi ve Verileri Anında Sıfırla (Acil Temizle)
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!ready) {
     return (
       <main className="prz-gate">
@@ -442,7 +516,33 @@ export default function Beta() {
         <Link href="/prizmaa" className="prz-brand">
           ✳ PRIZMAA.
         </Link>
-        <div className="prz-side-label">LOCAL MVP · SIGNED IN</div>
+        <button
+          type="button"
+          onClick={() => {
+            setCamouflaged(true);
+            setCamouflageMode(true);
+          }}
+          style={{
+            margin: "12px 0 6px",
+            padding: "8px 12px",
+            background: "rgba(239, 68, 68, 0.15)",
+            border: "1px solid rgba(239, 68, 68, 0.4)",
+            borderRadius: 8,
+            color: "#fca5a5",
+            fontSize: 11,
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            cursor: "pointer",
+            width: "100%",
+          }}
+          title="Basıldığında ekranı hemen Ebru Sanat Not Defterine dönüştürür (ESC)"
+        >
+          <span>🚨 Acil Kamuflaj</span>
+          <kbd style={{ background: "#450a0a", padding: "2px 6px", borderRadius: 4, fontSize: 10 }}>ESC</kbd>
+        </button>
+        <div className="prz-side-label">ZERO-HOST P2P · SIGNED IN</div>
         <div className="prz-side-menu">
           {(
             [
@@ -915,6 +1015,48 @@ export default function Beta() {
 
           {section === "safety" && (
             <div className="prz-safety-grid">
+              <article style={{ border: "1px solid #10b981", background: "rgba(16, 185, 129, 0.08)" }}>
+                <h2 style={{ color: "#34d399" }}>🛡️ Sıfır-Sunucu P2P Güvenliği (Zero-Host)</h2>
+                <p>
+                  Bu sistemde merkezi bir sunucuda kimlik, sohbet veya konum verisi tutulmaz. Verileriniz yalnızca bu cihazda şifrelenir.
+                </p>
+                <div style={{ fontSize: 11, color: "#a7f3d0", fontFamily: "monospace", padding: "8px 10px", background: "rgba(0,0,0,0.3)", borderRadius: 6, margin: "10px 0" }}>
+                  P2P Kimlik İzi: <b>{p2pId?.publicKeyFingerprint || "pz_ephemeral_client"}</b>
+                </div>
+                <p style={{ fontSize: 11, color: "#9ca3af" }}>
+                  ✓ Operatör sorumluluğu yok &bull; ✓ BTK/Mahkeme veritabanı talebi yapılamaz (veritabanı yok) &bull; ✓ Uçtan uca şifreli.
+                </p>
+              </article>
+              <article style={{ border: "1px solid #ef4444", background: "rgba(239, 68, 68, 0.08)" }}>
+                <h2 style={{ color: "#f87171" }}>🚨 Acil Panik &amp; Kamuflaj</h2>
+                <p>
+                  Biri telefonunuza bakarsa ekranı tek tıkla Ebru Sanat Not Defterine çevirin ya da tüm verileri sıfırlayın.
+                </p>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCamouflaged(true);
+                      setCamouflageMode(true);
+                    }}
+                    style={{ background: "#991b1b", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 6, fontWeight: "bold" }}
+                  >
+                    Ekranı Hemen Gizle (Kamuflaj) ↗
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Cihazdaki tüm veriler ve oturumlar anında temizlensin mi?")) {
+                        emergencyPurgeAll();
+                        window.location.reload();
+                      }
+                    }}
+                    style={{ background: "transparent", color: "#fca5a5", border: "1px solid #ef4444", padding: "8px 12px", borderRadius: 6 }}
+                  >
+                    🧹 Acil Veri İmhası (Sıfırla)
+                  </button>
+                </div>
+              </article>
               <article>
                 <h2>Screen privacy</h2>
                 <p>Hide the entire application instantly.</p>
