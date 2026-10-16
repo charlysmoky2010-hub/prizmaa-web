@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { rankDiscovery } from '@/lib/prizmaa/intelligence';
 import './beta.css';
 
-type Tab = 'discover' | 'matches' | 'messages' | 'profile';
+type Tab = 'discover' | 'intelligence' | 'matches' | 'messages' | 'profile';
 type Intent = 'All' | 'Flirting' | 'Dating' | 'Relationship' | 'Hookup';
 type Member = {
   id: string; nickname: string; age: number; city: string; intent: string;
@@ -73,6 +74,9 @@ export default function PrizmaaDatingStudio() {
   const [conversation, setConversation] = useState<ChatMessage[]>([]);
   const [selected, setSelected] = useState<Member | null>(null);
   const [intent, setIntent] = useState<Intent>('All');
+  const [smartIntent, setSmartIntent] = useState('Dating');
+  const [smartInterests, setSmartInterests] = useState('Art, Travel');
+  const [smartCity, setSmartCity] = useState('');
   const [search, setSearch] = useState('');
   const [auth, setAuth] = useState<'login' | 'signup' | null>(null);
   const [handle, setHandle] = useState('');
@@ -208,9 +212,10 @@ export default function PrizmaaDatingStudio() {
 
   const preview = !enabled || !me;
   const shown = preview ? demoPeople.filter(p => (intent === 'All' || p.intent === intent) && (p.nickname + ' ' + p.city + ' ' + p.tags).toLowerCase().includes(search.toLowerCase())) : profiles.filter(p => (intent === 'All' || p.intent === intent) && (p.nickname + ' ' + p.city + ' ' + p.tags).toLowerCase().includes(search.toLowerCase()));
-  const counts = {discover: shown.length, matches: me ? connections.length : 0, messages: connections.reduce((a, c) => a + Number(c.unread_count || 0), 0), profile: 0};
+  const smartSuggestions = rankDiscovery(preview ? demoPeople : profiles, { intent: smartIntent, interests: smartInterests, city: smartCity });
+  const counts = {discover: shown.length, intelligence: smartSuggestions.length, matches: me ? connections.length : 0, messages: connections.reduce((a, c) => a + Number(c.unread_count || 0), 0), profile: 0};
   const nav: {id: Tab; icon: string; title: string}[] = [
-    { id: 'discover', icon: '◈', title: 'Discover' }, { id: 'matches', icon: '♡', title: 'Connections' },
+    { id: 'discover', icon: '◈', title: 'Discover' }, { id: 'intelligence', icon: '✦', title: 'Gay Intelligence' }, { id: 'matches', icon: '♡', title: 'Connections' },
     { id: 'messages', icon: '▣', title: 'Messages' }, { id: 'profile', icon: '◎', title: 'My profile' },
   ];
   return <main className="pzb-app">
@@ -235,6 +240,34 @@ export default function PrizmaaDatingStudio() {
             <div className="pzb-card-actions"><button disabled={busy} onClick={()=>void toggleLike(person)} className="pzb-like" aria-label={'Like '+person.nickname}>♡ <span>Connect</span></button><button onClick={()=>preview ? needAccount() : setReportTarget(person)} className="pzb-more" aria-label={'Safety options for '+person.nickname}>···</button></div></div>
           </article>)}</div>:<div className="pzb-empty"><span>✧</span><h3>No profiles to display</h3><p>Try another filter, or remember that local private beta profiles start hidden until their owners opt in.</p></div>}
         </>}
+
+        {tab === 'intelligence' && <section className="pzb-inner pzb-intelligence" aria-label="Gay Intelligence discovery">
+          <span className="pzb-overline">✦ PRIZMAA INTELLIGENCE / V0.1 · PRIVATE EXPLAINABLE DISCOVERY</span>
+          <h1>Beyond the <em>swipe.</em></h1>
+          <p>You choose what matters. PRIZMAA orders discoverable profiles and explains why — without scanning private messages, inferring sexuality or tracking your GPS.</p>
+          {preview && <div className="pzb-preview-banner"><span>✳</span><div><strong>Fictional examples, not online members</strong><small>Explore how a real opt-in profile discovery system would work. No real matches or compatibility claims.</small></div></div>}
+          <div className="pzb-intelligence-controls">
+            <div><label htmlFor="smart-intent">Your connection intention</label><select id="smart-intent" value={smartIntent} onChange={e=>setSmartIntent(e.target.value)}>
+              <option value="Any">Explore all intentions</option><option value="Dating">Dating</option><option value="Flirting">Flirting</option><option value="Relationship">Relationship</option><option value="Hookup">Hookup</option>
+            </select></div>
+            <div><label htmlFor="smart-interests">Your interests, separated by commas</label><input id="smart-interests" value={smartInterests} onChange={e=>setSmartInterests(e.target.value)} maxLength={200} placeholder="Cinema, art, music"/></div>
+            <div><label htmlFor="smart-city">City preference (optional)</label><input id="smart-city" value={smartCity} onChange={e=>setSmartCity(e.target.value)} maxLength={50} placeholder="e.g. Berlin (not GPS)"/></div>
+          </div>
+          <div className="pzb-intelligence-meta"><span>✦ {smartSuggestions.length} {preview?'fictional examples':'opt-in public profiles'}</span><span>Preferences are calculated in this browser tab only</span></div>
+          <div className="pzb-intelligence-results">
+            {smartSuggestions.map(({person,reasons,priority},index)=><article className="pzb-intelligence-result" key={person.id}>
+              <div className="pzb-intelligence-picture"><Avatar person={person}/><span>{String(index+1).padStart(2,'0')}</span></div>
+              <div className="pzb-intelligence-copy">
+                <div className="pzb-intelligence-title"><h3>{person.nickname}, {person.age}</h3><span>{person.intent} · {person.city||'City hidden'}</span></div>
+                <p className="pzb-intelligence-reason">{priority>0?'Suggested because:':'Discovery option:'} {reasons.join(' · ')}</p>
+                <p className="pzb-intelligence-disclaimer">Sorting priority only; not a relationship compatibility prediction.</p>
+              </div>
+              <button type="button" className="pzb-intelligence-cta" disabled={busy} onClick={()=>void toggleLike(person)}>{preview?'See demo only ↗':'Connect ♡'}</button>
+            </article>)}
+            {!smartSuggestions.length && <div className="pzb-empty"><span>✧</span><h3>No eligible public profiles</h3><p>PRIZMAA will not fabricate a match. Try again when people have opted into discovery.</p></div>}
+          </div>
+          <p className="pzb-intelligence-explain"><strong>How it works:</strong> Matching intention has the highest priority, then shared voluntarily listed interests and an optional exact city match. You can change these inputs at any time. This is a transparent rules-based first version, <strong>not yet a connected generative AI model</strong>. We make no claims about chemistry or private traits.</p>
+        </section>}
         {tab === 'matches' && <section className="pzb-inner"><span className="pzb-overline">02 / THE MUTUAL SPARK</span><h1>Your <em>connections.</em></h1><p>Two likes make a connection. No unsolicited messaging.</p>
           {!me ? <div className="pzb-empty"><span>♡</span><h3>No real connections in preview mode</h3><p>Matches only appear after two signed-in adults consent to connect in the local beta.</p><button className="pzb-primary" onClick={needAccount}>Learn about private beta ↗</button></div> :
           connections.length ? <div className="pzb-connection-grid">{connections.map(p=><article className="pzb-connection" key={p.id}><Avatar person={p}/><div><h3>{p.nickname}, {p.age}</h3><p>{p.city} · {p.intent}</p></div><button onClick={()=>void openConversation(p)}>Message ↗</button><button onClick={()=>setReportTarget(p)} aria-label="Safety options">···</button></article>)}</div> :
@@ -253,7 +286,7 @@ export default function PrizmaaDatingStudio() {
         <footer className="pzb-footer"><div><strong>PRIZMAA</strong> — COME AS YOU ARE</div><span>DESIGN BUILD · 18+ · NOT A LIVE DATING SERVICE</span><button onClick={()=>window.location.replace('about:blank')}>Quick exit ↗</button></footer>
       </div>
     </div>
-    <nav className="pzb-bottom-nav" aria-label="Mobile navigation">{nav.map(n=><button key={n.id} className={tab===n.id?'active':''} onClick={()=>{setTab(n.id);setNotice('')}}><span>{n.icon}</span><small>{n.title==='Connections'?'Matches':n.title}</small></button>)}</nav>
+    <nav className="pzb-bottom-nav" aria-label="Mobile navigation">{nav.map(n=><button key={n.id} className={tab===n.id?'active':''} onClick={()=>{setTab(n.id);setNotice('')}}><span>{n.icon}</span><small>{n.title==='Connections'?'Matches':n.title==='Gay Intelligence'?'Intelligence':n.title}</small></button>)}</nav>
     {auth && enabled && <div className="pzb-modal-back" role="presentation" onMouseDown={()=>setAuth(null)}><div className="pzb-modal" role="dialog" aria-modal="true" aria-label={auth==='signup'?'Create local account':'Sign in'} onMouseDown={e=>e.stopPropagation()}><button className="pzb-close" onClick={()=>setAuth(null)} aria-label="Close">×</button><Logo/><h2>{auth==='signup'?'Join the circle.':'Welcome back.'}</h2><p>Private local test accounts only. No production accounts can be created.</p><form onSubmit={e=>void authSubmit(e)}><label>Username<input autoComplete="username" value={handle} onChange={e=>setHandle(e.target.value)} minLength={3} maxLength={24} required placeholder="your_handle"/></label>{auth==='signup'&&<><label>Display name<input value={nickname} onChange={e=>setNickname(e.target.value)} required maxLength={36}/></label><label>Age<input value={signupAge} onChange={e=>setSignupAge(e.target.value)} type="number" min={18} max={90} required/></label></>}<label>Password<input type="password" autoComplete={auth==='signup'?'new-password':'current-password'} minLength={12} maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} required/></label>{auth==='signup'&&<label className="pzb-check"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)} required/><span>I am at least 18 and agree to follow community safety rules.</span></label>}<button className="pzb-primary" disabled={busy|| (auth==='signup'&&!accepted)}>{auth==='signup'?'Create local profile':'Sign in'} ↗</button></form><button className="pzb-switch" onClick={()=>setAuth(auth==='login'?'signup':'login')}>{auth==='login'?'New here? Create an account':'Already a member? Sign in'}</button></div></div>}
     {reportTarget && <div className="pzb-modal-back" role="presentation" onMouseDown={()=>setReportTarget(null)}><div className="pzb-modal" role="dialog" aria-modal="true" aria-label="Safety controls" onMouseDown={e=>e.stopPropagation()}><button className="pzb-close" onClick={()=>setReportTarget(null)} aria-label="Close">×</button><span className="pzb-overline">YOUR SAFETY MATTERS</span><h2>Safety controls</h2><p>For {reportTarget.nickname}. Blocking hides your profiles from each other and removes the connection.</p><button className="pzb-safety-btn" disabled={busy} onClick={()=>void safetyAction('block',reportTarget)}>Block member</button><label>Report reason<select value={reportReason} onChange={e=>setReportReason(e.target.value)}>{reportReasons.map(r=><option key={r}>{r}</option>)}</select></label><button className="pzb-safety-btn critical" disabled={busy} onClick={()=>void safetyAction('report',reportTarget,reportReason)}>Report and block</button><small>Reports stay in the local test database; a real moderation team is not active yet.</small></div></div>}
   </main>;
