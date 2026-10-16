@@ -7,6 +7,8 @@ on:
       - 'lib/prizmaa/**'
       - 'scripts/test-prizmaa.mjs'
       - 'scripts/prizmaa-http-smoke.mjs'
+      - 'scripts/test-prizmaa-intelligence.mjs'
+      - 'lib/prizmaa/intelligence.ts'
       - 'package*.json'
       - '.github/workflows/prizmaa-beta-checks.yml'
   workflow_dispatch:
@@ -39,6 +41,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Test private beta store
         run: npm test
+      - name: Explainable Gay Intelligence unit tests
+        run: node --experimental-strip-types scripts/test-prizmaa-intelligence.mjs
       - name: Production build check (not deployment)
         run: npm run build
       - name: Private-only UI / API HTTP integration smoke
