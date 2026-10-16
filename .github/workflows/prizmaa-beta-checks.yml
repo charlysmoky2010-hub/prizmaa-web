@@ -6,6 +6,7 @@ on:
       - 'app/api/prizmaa/**'
       - 'lib/prizmaa/**'
       - 'scripts/test-prizmaa.mjs'
+      - 'scripts/prizmaa-http-smoke.mjs'
       - 'package*.json'
       - '.github/workflows/prizmaa-beta-checks.yml'
   workflow_dispatch:
@@ -40,3 +41,24 @@ jobs:
         run: npm test
       - name: Production build check (not deployment)
         run: npm run build
+      - name: Private-only UI / API HTTP integration smoke
+        env:
+          PRIZMAA_DB_PATH: /tmp/prizmaa-http-smoke.sqlite
+        run: |
+          set -euo pipefail
+          npm run start -- -p 3055 -H 127.0.0.1 > /tmp/prizmaa-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3055/prizmaa/beta >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/prizmaa-next.log
+            exit 1
+          fi
+          node scripts/prizmaa-http-smoke.mjs
