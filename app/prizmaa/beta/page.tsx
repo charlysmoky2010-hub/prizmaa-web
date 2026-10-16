@@ -40,7 +40,7 @@ const humanError: Record<string, string> = {
 };
 
 async function api(query: string, data?: Record<string, unknown>): Promise<ApiResult> {
-  const url = '/api/prizmaa/core' + (data ? '' : '?op=' + encodeURIComponent(query));
+  const url = '/api/prizmaa/core' + (data ? '' : query.startsWith('chat&with=') ? '?op=chat&with=' + encodeURIComponent(query.slice('chat&with='.length)) : '?op=' + encodeURIComponent(query));
   const response = await fetch(url, data ? {
     method: 'POST',
     credentials: 'same-origin',
