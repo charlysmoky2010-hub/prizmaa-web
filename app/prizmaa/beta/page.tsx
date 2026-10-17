@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
+import { Suspense } from "react";
 import { isPrivateBetaRuntime } from "@/lib/prizmaa/security-policy";
 import BetaClient from "./client";
 import "./beta.css";
 
-export default async function PrizmaaBeta() {
+async function PrivateBetaGate() {
   const h = await headers();
   const host = h.get("host") || "";
   const hostname = host.startsWith("[") ? host.split("]")[0] + "]" : host.split(":")[0];
@@ -29,4 +30,12 @@ export default async function PrizmaaBeta() {
     );
   }
   return <BetaClient />;
+}
+
+export default function PrizmaaBeta() {
+  return (
+    <Suspense fallback={<main className="prizmaa-beta"><div className="prizmaa-wrap"><header className="prizmaa-nav"><span className="prizmaa-logotype">PRIZMAA<span>✦</span></span><span className="prizmaa-chip">PRIVATE BETA</span></header><section className="prizmaa-panel" style={{marginTop:40}}>Private development access is being checked. No member data is displayed publicly.</section></div></main>}>
+      <PrivateBetaGate />
+    </Suspense>
+  );
 }
