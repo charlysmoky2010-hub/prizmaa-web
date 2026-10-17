@@ -106,7 +106,7 @@ export default function PrizmaaMember() {
         <h1 className="pz-hero">Meet. Flirt.<br/><em>Belong.</em></h1>
         <p className="pz-intro">A space for gay adults to connect on their own terms. Personal profiles, mutual consent and a community built around respect — without selling sensitive identities to advertisers.</p>
         <div className="pz-mini"><span>18+ only</span><span>Private by default</span><span>Invitation-based beta</span><span>No location tracking</span></div>
-        <p className="pz-note">This is the member infrastructure pilot. Matching, direct messages, community groups, advertisements and payments are not publicly activated yet. No fabricated members or activity.</p>
+        <p className="pz-note">Private matching and messaging infrastructure is under restricted test. Public discovery, community groups, advertisements and payments are not enabled. No fabricated members or activity.</p>
       </section>
       <section className="pz-card" aria-live="polite">
         {mode === "checking" ? <><h2>Checking private access…</h2><p>Your session is being verified.</p></> :
@@ -124,6 +124,7 @@ export default function PrizmaaMember() {
          <>
           <div className="pz-account"><div><div className="pz-overline">PRIVATE MEMBER PROFILE</div><h2>Your PRIZMAA space</h2></div><button type="button" className="pz-secondary" onClick={signOut} disabled={busy}>Sign out</button></div>
           <p className="pz-state">Authorized session: {account}</p>
+          <p><a className="pz-secondary" href="/prizmaa/connections">View mutual matches &amp; private messages →</a></p>
           <form className="pz-form" onSubmit={save}>
             <label>Display name <input value={name} onChange={e=>setName(e.target.value)} minLength={2} maxLength={36} required autoComplete="off" /></label>
             <label>General area (optional) <input value={region} onChange={e=>setRegion(e.target.value)} maxLength={44} autoComplete="off" /></label>
