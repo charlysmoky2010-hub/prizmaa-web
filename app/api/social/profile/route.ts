@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 // Isolated first step toward durable Supabase storage. This endpoint does NOT
 // accept legacy SQLite session tokens; callers need a verified Supabase Auth JWT.
