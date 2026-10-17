@@ -40,7 +40,8 @@ export async function GET(request:NextRequest){
   try {
     guard(request);
     const op=new URL(request.url).searchParams.get("op")||"health";
-    if(op==="health")return response({ok:true,mode:process.env.VERCEL?"PUBLIC_PREVIEW":"PRIVATE_LOCAL_MVP",features:["accounts","profiles","mutual-matches","messages","block","report","delete","vip-monetization"],public:!!process.env.VERCEL,ageVerification:"self-attested"});
+    if(op==="health")return response({ok:true,mode:process.env.VERCEL?"SAFE_PREVIEW":"PRIVATE_LOCAL_MVP",legacyMemberWritesEnabled:!process.env.VERCEL,memberBackend:process.env.VERCEL?"NOT_READY":"LOCAL_ONLY",verifiedAgeControls:"NOT_LIVE",payments:"DISABLED",storage:process.env.VERCEL?"PERSISTENT_BACKEND_REQUIRED":"LOCAL_SQLITE",discoveryLive:!process.env.VERCEL});
+    if(process.env.VERCEL || (process.env.NODE_ENV==="production" && process.env.PRIZMAA_ALLOW_LOCAL_PRODUCTION!=="true"))throw new ApiError(503,"PERSISTENT_MEMBER_BACKEND_REQUIRED");
     const user=required(request);
     if(op==="me")return response({ok:true,profile:self(user)});
     if(op==="people"){
@@ -61,6 +62,7 @@ export async function GET(request:NextRequest){
 export async function POST(request:NextRequest){
   try{
     guard(request,true);
+    if(process.env.VERCEL || (process.env.NODE_ENV==="production" && process.env.PRIZMAA_ALLOW_LOCAL_PRODUCTION!=="true"))throw new ApiError(503,"PERSISTENT_MEMBER_BACKEND_REQUIRED");
     const b=await body(request);
     const op=String(b.op||"");
     if(op==="signup"||op==="login"){
@@ -81,16 +83,9 @@ export async function POST(request:NextRequest){
     if(op==="message"){limited("chat-"+user,12,60000);return response({ok:true,...send(user,target(b.target),b.text)});}
     if(op==="block")return response({ok:true,...block(user,target(b.target))});
     if(op==="report")return response({ok:true,...report(user,target(b.target),String(b.reason||""))});
-    if(op==="upgrade_vip"){
-      const updated=upgradeVip(user, true);
-      return response({
-        ok:true,
-        profile: updated,
-        plan: "PRIZMAA_PLUS_LIFETIME",
-        price_eur: 9.99,
-        stripe_payment_link: "https://buy.stripe.com/5kQ28r884dC670T9b36Na2f"
-      });
-    }
+    // Never grant paid entitlements based solely on a client request.
+    // A future billing webhook must verify the provider signature and payment state.
+    if(op==="upgrade_vip")throw new ApiError(403,"VERIFIED_PAYMENT_REQUIRED");
     if(op==="delete_account"){
       if(b.confirm!=="DELETE MY ACCOUNT")throw new ApiError(400,"CONFIRM_DELETION");
       const outcome=erase(user);const r=response({ok:true,...outcome});
