@@ -1,84 +1,88 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  memberSession, noStore, sameOrigin, sessionResponse,
+  supabaseUrl, userHeaders
+} from "@/lib/prizmaa/auth-session";
 
-
-// Isolated first step toward durable Supabase storage. This endpoint does NOT
-// accept legacy SQLite session tokens; callers need a verified Supabase Auth JWT.
-const url = process.env.PRIZMAA_SUPABASE_URL;
-const publicKey = process.env.PRIZMAA_SUPABASE_PUBLISHABLE_KEY;
-
-function error(status: number, code: string) {
-  return NextResponse.json({ ok: false, error: code }, { status, headers: { "Cache-Control": "no-store" } });
+function reject(status: number, error: string) {
+  return noStore({ ok: false, error }, status);
 }
-function headers(jwt: string) {
-  return { apikey: publicKey!, Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" };
+
+const selected = "user_id,display_name,location_label,bio,visible_in_discovery,updated_at";
+function profileUrl(userId: string) {
+  return supabaseUrl() + "/rest/v1/prizmaa_private_profiles?user_id=eq." +
+    encodeURIComponent(userId) + "&select=" + selected;
 }
-async function verified(request: NextRequest) {
-  if (!url || !publicKey || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url))
-    return { code: "PERSISTENT_BACKEND_NOT_CONFIGURED" } as const;
-  const auth = request.headers.get("authorization") || "";
-  if (!/^Bearer [A-Za-z0-9._-]+$/.test(auth)) return { code: "AUTH_REQUIRED" } as const;
-  const token = auth.slice(7);
-  const response = await fetch(`${url}/auth/v1/user`, {
-    headers: headers(token), cache: "no-store"
-  });
-  if (!response.ok) return { code: "AUTH_REQUIRED" } as const;
-  const user = await response.json();
-  if (typeof user?.id !== "string" || !/^[0-9a-f-]{36}$/i.test(user.id)) return { code: "AUTH_REQUIRED" } as const;
-  return { token, id: user.id } as const;
+
+function cleanProfile(input: unknown, creating: boolean) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const data = input as Record<string, unknown>;
+  const allowed = ["display_name", "location_label", "bio", "visible_in_discovery"];
+  const entries = Object.entries(data);
+  if (entries.length === 0 || entries.some(([key]) => !allowed.includes(key))) return null;
+  const payload: Record<string, string | boolean> = {};
+  for (const field of ["display_name", "location_label", "bio"]) {
+    if (!(field in data)) continue;
+    const value = data[field];
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    const max = field === "bio" ? 400 : field === "location_label" ? 44 : 36;
+    if (trimmed.length > max || (field === "display_name" && trimmed.length < 2)) return null;
+    payload[field] = trimmed;
+  }
+  if ("visible_in_discovery" in data) {
+    if (typeof data.visible_in_discovery !== "boolean") return null;
+    payload.visible_in_discovery = data.visible_in_discovery;
+  } else if (creating) payload.visible_in_discovery = false;
+  if (creating && !("display_name" in payload)) return null;
+  return payload;
 }
 
 export async function GET(request: NextRequest) {
+  const session = await memberSession(request);
+  if (!session.ok) return sessionResponse(reject(session.status, session.code), session);
   try {
-    const auth = await verified(request);
-    if ("code" in auth) return error(auth.code === "PERSISTENT_BACKEND_NOT_CONFIGURED" ? 503 : 401, auth.code!);
-    const response = await fetch(
-      `${url}/rest/v1/prizmaa_private_profiles?user_id=eq.${encodeURIComponent(auth.id!)}&select=user_id,display_name,location_label,bio,visible_in_discovery,updated_at`,
-      { headers: headers(auth.token), cache: "no-store" }
-    );
-    if (!response.ok) return error(502, "PROFILE_READ_FAILED");
-    const records = await response.json();
-    return NextResponse.json({ ok: true, profile: records[0] || null }, { headers: { "Cache-Control": "no-store" } });
+    const response = await fetch(profileUrl(session.userId), {
+      headers: userHeaders(session.token), cache: "no-store", signal: AbortSignal.timeout(10000)
+    });
+    if (!response.ok) return sessionResponse(reject(502, "PROFILE_READ_FAILED"), session);
+    const records: unknown = await response.json();
+    if (!Array.isArray(records)) return sessionResponse(reject(502, "PROFILE_READ_FAILED"), session);
+    return sessionResponse(noStore({ ok: true, profile: records[0] || null }), session);
   } catch {
-    return error(502, "BACKEND_UNAVAILABLE");
+    return sessionResponse(reject(502, "BACKEND_UNAVAILABLE"), session);
   }
 }
 
-export async function PATCH(request: NextRequest) {
+async function write(request: NextRequest, creating: boolean) {
+  if (!sameOrigin(request)) return reject(403, "INVALID_ORIGIN");
+  if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") return reject(415, "JSON_REQUIRED");
+  if (Number(request.headers.get("content-length") || 0) > 3072) return reject(413, "BODY_TOO_LARGE");
+  const session = await memberSession(request);
+  if (!session.ok) return sessionResponse(reject(session.status, session.code), session);
   try {
-    const auth = await verified(request);
-    if ("code" in auth) return error(auth.code === "PERSISTENT_BACKEND_NOT_CONFIGURED" ? 503 : 401, auth.code!);
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body !== "object" || Array.isArray(body)) return error(400, "INVALID_BODY");
-    const allowed = ["display_name", "location_label", "bio", "visible_in_discovery"];
-    if (Object.keys(body).some((key) => !allowed.includes(key))) return error(400, "INVALID_FIELDS");
-    if (Object.keys(body).length === 0) return error(400, "EMPTY_UPDATE");
-    const payload: Record<string, string | boolean> = {};
-    for (const key of ["display_name", "location_label", "bio"]) {
-      if (key in body) {
-        if (typeof body[key] !== "string" || body[key].trim().length > (key === "bio" ? 400 : 64))
-          return error(400, "INVALID_FIELD_VALUE");
-        payload[key] = body[key].trim();
-      }
-    }
-    if ("visible_in_discovery" in body) {
-      if (typeof body.visible_in_discovery !== "boolean") return error(400, "INVALID_FIELD_VALUE");
-      payload.visible_in_discovery = body.visible_in_discovery;
-    }
+    const payload = cleanProfile(await request.json(), creating);
+    if (!payload) return sessionResponse(reject(400, "INVALID_PROFILE"), session);
     const response = await fetch(
-      `${url}/rest/v1/prizmaa_private_profiles?user_id=eq.${encodeURIComponent(auth.id!)}`,
+      creating ? supabaseUrl() + "/rest/v1/prizmaa_private_profiles?select=" + selected : profileUrl(session.userId),
       {
-        method: "PATCH",
-        headers: { ...headers(auth.token), Prefer: "return=representation" },
-        body: JSON.stringify(payload),
-        cache: "no-store"
+        method: creating ? "POST" : "PATCH",
+        headers: { ...userHeaders(session.token), Prefer: "return=representation" },
+        body: JSON.stringify(creating ? { ...payload, user_id: session.userId } : payload),
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000)
       }
     );
-    if (response.status === 403 || response.status === 401) return error(403, "MEMBERSHIP_NOT_VERIFIED");
-    if (!response.ok) return error(502, "PROFILE_UPDATE_FAILED");
+    if (response.status === 409) return sessionResponse(reject(409, "PROFILE_ALREADY_EXISTS"), session);
+    if (response.status === 401 || response.status === 403) return sessionResponse(reject(403, "PROFILE_NOT_AUTHORIZED"), session);
+    if (!response.ok) return sessionResponse(reject(502, "PROFILE_WRITE_FAILED"), session);
     const rows = await response.json();
-    if (!Array.isArray(rows) || !rows.length) return error(403, "PROFILE_NOT_AVAILABLE");
-    return NextResponse.json({ ok: true, profile: rows[0] }, { headers: { "Cache-Control": "no-store" } });
+    if (!Array.isArray(rows) || rows.length !== 1) return sessionResponse(reject(403, "PROFILE_UNAVAILABLE"), session);
+    return sessionResponse(noStore({ ok: true, profile: rows[0] }, creating ? 201 : 200), session);
   } catch {
-    return error(502, "BACKEND_UNAVAILABLE");
+    return sessionResponse(reject(502, "BACKEND_UNAVAILABLE"), session);
   }
 }
+
+export async function POST(request: NextRequest) { return write(request, true); }
+export async function PATCH(request: NextRequest) { return write(request, false); }
