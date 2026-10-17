@@ -30,7 +30,7 @@ async function verified(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const auth = await verified(request);
-    if ("code" in auth) return error(auth.code === "PERSISTENT_BACKEND_NOT_CONFIGURED" ? 503 : 401, auth.code);
+    if ("code" in auth) return error(auth.code === "PERSISTENT_BACKEND_NOT_CONFIGURED" ? 503 : 401, auth.code!);
     const response = await fetch(
       `${url}/rest/v1/prizmaa_private_profiles?user_id=eq.${encodeURIComponent(auth.id!)}&select=user_id,display_name,location_label,bio,visible_in_discovery,updated_at`,
       { headers: headers(auth.token), cache: "no-store" }
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const auth = await verified(request);
-    if ("code" in auth) return error(auth.code === "PERSISTENT_BACKEND_NOT_CONFIGURED" ? 503 : 401, auth.code);
+    if ("code" in auth) return error(auth.code === "PERSISTENT_BACKEND_NOT_CONFIGURED" ? 503 : 401, auth.code!);
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object" || Array.isArray(body)) return error(400, "INVALID_BODY");
     const allowed = ["display_name", "location_label", "bio", "visible_in_discovery"];
