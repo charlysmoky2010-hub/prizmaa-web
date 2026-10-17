@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const auth = await verified(request);
     if ("code" in auth) return error(auth.code === "PERSISTENT_BACKEND_NOT_CONFIGURED" ? 503 : 401, auth.code);
     const response = await fetch(
-      `${url}/rest/v1/prizmaa_private_profiles?user_id=eq.${encodeURIComponent(auth.id)}&select=user_id,display_name,location_label,bio,visible_in_discovery,updated_at`,
+      `${url}/rest/v1/prizmaa_private_profiles?user_id=eq.${encodeURIComponent(auth.id!)}&select=user_id,display_name,location_label,bio,visible_in_discovery,updated_at`,
       { headers: headers(auth.token), cache: "no-store" }
     );
     if (!response.ok) return error(502, "PROFILE_READ_FAILED");
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest) {
       payload.visible_in_discovery = body.visible_in_discovery;
     }
     const response = await fetch(
-      `${url}/rest/v1/prizmaa_private_profiles?user_id=eq.${encodeURIComponent(auth.id)}`,
+      `${url}/rest/v1/prizmaa_private_profiles?user_id=eq.${encodeURIComponent(auth.id!)}`,
       {
         method: "PATCH",
         headers: { ...headers(auth.token), Prefer: "return=representation" },
