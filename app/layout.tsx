@@ -2,19 +2,14 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PRIZMAA — Beyond Identity. Into Possibility.",
-  description: "An independent digital ecosystem for queer culture, creativity, community, opportunity, and belonging across Germany, the Netherlands, the Mediterranean, and Türkiye.",
+  title: "PRIZMAA — Meet. Flirt. Belong.",
+  description: "PRIZMAA is a privacy-first, invitation-only social membership pilot for gay adults 18+. Public matching and messaging are not yet enabled.",
+  robots: { index: false, follow: false },
+  referrer: "no-referrer",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
