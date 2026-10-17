@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types scripts/test-prizmaa.mjs && node --experimental-strip-types scripts/test-prizmaa-security.mjs"
+    "test": "node --experimental-strip-types scripts/test-prizmaa.mjs && node --experimental-strip-types scripts/test-prizmaa-security.mjs",
+    "dev:private": "PRIZMAA_LOCAL_MVP=1 next dev --hostname 127.0.0.1",
+    "start:private": "PRIZMAA_LOCAL_MVP=1 next start --hostname 127.0.0.1"
   },
   "dependencies": {
     "next": "16.4.0",
