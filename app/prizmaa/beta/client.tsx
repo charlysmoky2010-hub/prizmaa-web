@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 
 type Member = {
   id: string;
@@ -44,7 +44,7 @@ async function api(op: string, data?: Record<string, unknown>): Promise<ApiResul
 function initials(name: string) { return name.trim().slice(0, 2).toUpperCase() || "✦"; }
 function Avatar({person, large = false}: {person: Member; large?: boolean}) {
   const hue: Record<string, string> = { violet: "#aa74ff", emerald: "#64e3b2", rose: "#fd8bab", blue: "#8dbbff", amber: "#e5c071" };
-  return <span className={large ? "prizmaa-avatar large" : "prizmaa-avatar"} style={{ "--avatar-color": hue[person.avatar_color || "violet"] || "#aa74ff" } as React.CSSProperties} aria-hidden="true">{initials(person.nickname)}</span>;
+  return <span className={large ? "prizmaa-avatar large" : "prizmaa-avatar"} style={{ "--avatar-color": hue[person.avatar_color || "violet"] || "#aa74ff" } as CSSProperties} aria-hidden="true">{initials(person.nickname)}</span>;
 }
 
 export default function BetaClient() {
@@ -95,7 +95,7 @@ export default function BetaClient() {
   }
   async function refreshMatches() { const r=await api("matches"); setMatches(r.matches || []); }
 
-  async function signIn(event: React.FormEvent) {
+  async function signIn(event: FormEvent) {
     event.preventDefault();
     await run(async () => {
       const r = await api(mode, mode === "signup" ? {
@@ -116,7 +116,7 @@ export default function BetaClient() {
       setProfile(null); setSelected(null); setPeople([]); setMatches([]); setMessages([]); setMessage("");
     });
   }
-  async function saveProfile(event: React.FormEvent) {
+  async function saveProfile(event: FormEvent) {
     event.preventDefault();
     await run(async () => {
       const r=await api("profile", {...form});
@@ -141,7 +141,7 @@ export default function BetaClient() {
       await refreshMatches();
     });
   }
-  async function send(event:React.FormEvent) {
+  async function send(event:FormEvent) {
     event.preventDefault();if(!selected||!message.trim())return;
     await run(async () => {
       await api("message",{target:selected.id,text:message});
