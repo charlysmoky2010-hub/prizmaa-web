@@ -1,0 +1,28 @@
+.pz-member{min-height:100vh;color:#f4f0ff;background:radial-gradient(ellipse at 88% 0%,#42214e 0%,transparent 47%),linear-gradient(132deg,#0d0d1c 0%,#15122c 55%,#221333 100%);font-family:Arial,Helvetica,sans-serif;padding:0 5% 70px}
+.pz-member *{box-sizing:border-box}.pz-member a{color:inherit;text-decoration:none}.pz-member button{cursor:pointer}
+.pz-head{max-width:1160px;margin:0 auto;height:105px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #ffffff25}
+.pz-logo{font-size:27px;letter-spacing:.25em;font-weight:900}.pz-logo span{color:#f2a6d3}
+.pz-beta{font:700 11px Arial,sans-serif;letter-spacing:.12em;color:#dec4ff;border:1px solid #875d9f;padding:9px 13px;border-radius:50px}
+.pz-main{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1.12fr .88fr;gap:9%;align-items:center;padding:95px 0 60px}
+.pz-overline{font-size:11px;letter-spacing:.24em;color:#da9fc5;font-weight:700}
+.pz-hero{font-size:clamp(58px,7vw,105px);letter-spacing:-.075em;line-height:.98;font-weight:800;margin:30px 0 26px}
+.pz-hero em{font-style:normal;background:linear-gradient(95deg,#f7a9a3,#cd91ff,#b1a7ff);background-clip:text;color:transparent}
+.pz-intro{font-size:16px;line-height:1.85;color:#c9bed9;max-width:560px}
+.pz-mini{display:flex;gap:13px;flex-wrap:wrap;margin:36px 0}
+.pz-mini span{font-size:11px;border:1px solid #ffffff30;border-radius:30px;padding:7px 12px;color:#e5cde8}
+.pz-card{padding:35px;border:1px solid #ffffff28;border-radius:23px;background:linear-gradient(150deg,#ffffff15,#ffffff08);box-shadow:0 25px 70px #0004;backdrop-filter:blur(15px)}
+.pz-card h2{font-size:26px;letter-spacing:-.04em;margin:4px 0 9px}.pz-card p{color:#c5bbd5;font-size:13px;line-height:1.75}
+.pz-form{margin-top:25px}.pz-form label{display:block;color:#d9d2e6;font-size:12px;font-weight:600;margin-bottom:20px}
+.pz-form input,.pz-form textarea{display:block;width:100%;background:#0a0d1a99;color:white;border:1px solid #ffffff40;border-radius:11px;padding:14px 15px;margin-top:8px;font-size:14px;outline:none}
+.pz-form input:focus,.pz-form textarea:focus{border-color:#e4a0dc;box-shadow:0 0 0 2px #e4a0dc30}
+.pz-form textarea{min-height:130px;resize:vertical;font-family:inherit}
+.pz-action{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;border-radius:11px;background:linear-gradient(95deg,#e0a4c7,#a88eff);color:#13101c;padding:16px 19px;font-size:13px;letter-spacing:.03em;font-weight:800}
+.pz-action:disabled{opacity:.5;cursor:wait}
+.pz-secondary{border:1px solid #ffffff35;border-radius:10px;background:transparent;color:#f1e8ff;padding:9px 15px;font-size:12px}
+.pz-note{font-size:11px!important;line-height:1.7!important;color:#a79bbd!important}
+.pz-alert{border-left:3px solid #d8a0c3;background:#cda7fb15;padding:12px 14px;color:#f8d7ea!important;font-size:12px}
+.pz-state{color:#d9b8ff!important;font-size:11px!important;letter-spacing:.08em}
+.pz-account{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.pz-footer{max-width:1160px;margin:25px auto 0;border-top:1px solid #ffffff22;padding-top:25px;color:#8f83a6;font-size:11px;line-height:1.8}
+@media(max-width:780px){.pz-main{grid-template-columns:1fr;padding:62px 0;gap:30px}.pz-hero{font-size:70px}.pz-card{padding:25px}.pz-head{height:80px}.pz-logo{font-size:21px}.pz-beta{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.pz-member *{animation:none!important;transition:none!important}}
