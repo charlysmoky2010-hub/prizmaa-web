@@ -21,7 +21,7 @@ function db() {
     CREATE TABLE IF NOT EXISTS profiles (
       member_id TEXT PRIMARY KEY REFERENCES members(id) ON DELETE CASCADE,
       nickname TEXT NOT NULL, age INTEGER NOT NULL CHECK(age BETWEEN 18 AND 90),
-      city TEXT NOT NULL DEFAULT '', intent TEXT NOT NULL DEFAULT 'Dating',
+      city TEXT NOT NULL DEFAULT '', intent TEXT NOT NULL DEFAULT 'Friendship',
       bio TEXT NOT NULL DEFAULT '', visible INTEGER NOT NULL DEFAULT 0,
       avatar_color TEXT NOT NULL DEFAULT 'violet',
       avatar_icon TEXT NOT NULL DEFAULT 'prism',
@@ -92,7 +92,7 @@ export function register(input:Record<string,unknown>){
   try {
     db().exec("BEGIN");
     db().prepare("INSERT INTO members(id,handle,pass_hash,created_at) VALUES (?,?,?,?)").run(user,handle,pass,created);
-    db().prepare("INSERT INTO profiles(member_id,nickname,age,city,intent,bio,visible,updated_at) VALUES (?,?,?,'','Dating','',0,?)").run(user,nickname,age,created);
+    db().prepare("INSERT INTO profiles(member_id,nickname,age,city,intent,bio,visible,updated_at) VALUES (?,?,?,'','Friendship','',0,?)").run(user,nickname,age,created);
     db().exec("COMMIT");
   }catch(e){db().exec("ROLLBACK");if(String(e).includes("UNIQUE"))throw new ApiError(409,"HANDLE_TAKEN");throw e;}
   return issueSession(user);
@@ -115,7 +115,7 @@ export function setProfile(user:string,input:Record<string,unknown>){
   const avatar_icon=bounded(input.avatar_icon,20)||"prism";
   const role=bounded(input.role,24)||"Open";
   const tags=bounded(input.tags,140)||"";
-  if(nickname.length<2||!Number.isInteger(age)||age<18||age>90||!["Hookup","Flirting","Dating","Relationship"].includes(intent))throw new ApiError(400,"INVALID_PROFILE");
+  if(nickname.length<2||!Number.isInteger(age)||age<18||age>90||!["Friendship","Community","Flirting","Dating","Relationship","Hookup"].includes(intent))throw new ApiError(400,"INVALID_PROFILE");
   db().prepare("UPDATE profiles SET nickname=?,age=?,city=?,intent=?,bio=?,visible=?,avatar_color=?,avatar_icon=?,role=?,tags=?,updated_at=? WHERE member_id=?")
     .run(nickname,age,city,intent,bio,visible,avatar_color,avatar_icon,role,tags,now(),user);
   return self(user);
