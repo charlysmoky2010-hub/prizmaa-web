@@ -23,9 +23,9 @@ type ChatMessage = { id: string; from_id: string; to_id: string; body: string; c
 type ProfileForm = { nickname: string; age: number; city: string; intent: string; bio: string; visible: boolean; avatar_color: string; avatar_icon: string; role: string; tags: string };
 type Screen = "discover" | "matches" | "profile";
 
-const INTENTS = ["Flirting", "Dating", "Relationship", "Hookup"] as const;
+const INTENTS = ["Friendship", "Community", "Dating", "Relationship", "Flirting", "Hookup"] as const;
 const AVATAR_COLORS = ["violet", "emerald", "rose", "blue", "amber"];
-const emptyProfile: ProfileForm = { nickname: "", age: 18, city: "", intent: "Dating", bio: "", visible: false, avatar_color: "violet", avatar_icon: "prism", role: "Open", tags: "" };
+const emptyProfile: ProfileForm = { nickname: "", age: 18, city: "", intent: "Friendship", bio: "", visible: false, avatar_color: "violet", avatar_icon: "prism", role: "Open", tags: "" };
 
 async function api(op: string, data?: Record<string, unknown>): Promise<ApiResult> {
   const url = "/api/prizmaa/core";
