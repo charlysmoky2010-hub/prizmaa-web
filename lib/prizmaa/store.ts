@@ -223,9 +223,6 @@ export function whoLikedMe(user:string){
 
   return { locked: false, count, people: peopleRows };
 }
-export function upgradeVip(user:string, status:boolean = true){
-  db().prepare("UPDATE profiles SET is_vip=? WHERE member_id=?").run(status ? 1 : 0, user);
-  return self(user);
-}
+// Paid entitlement mutation intentionally absent until a verified payment webhook exists.
 
 

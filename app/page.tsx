@@ -127,7 +127,7 @@ export default function PrizmaaCulturalLanding() {
           The behavior of mineral earth pigments (iron oxides, ochre, lapis lazuli) upon an aqueous tragacanth (kitre) substrate is fundamentally governed by surface tension reduction through ox gall (sığır ödü). In natural paper marbling, each drop expands radially, displacing the preceding ring of color into concentric laminar boundaries.
         </p>
         <p style={{ marginTop: '16px' }}>
-          Field notes recorded at Studio Emsdetten / Münsterland (2026). Archival reference on 120gsm acid-free Hahnemühle cotton paper.
+          Illustrative process notes for private preview (2026). Archival reference on 120gsm acid-free Hahnemühle cotton paper.
         </p>
       </main>
     );
@@ -525,7 +525,7 @@ export default function PrizmaaCulturalLanding() {
             Living Ebru Heritage &amp; Moving Image Theory
           </h2>
           <p style={{ color: '#8e8b9e', maxWidth: '750px', fontSize: '15px' }}>
-            Curated works and masterclass formats rooted in the verified creative research of founder Yusuf Şen (Master of Arts in Video Art &amp; Graphic Design).
+            Curated creative projects and workshop concepts. Individual contributor identities are withheld from this prototype.
           </p>
         </div>
 
@@ -553,7 +553,7 @@ export default function PrizmaaCulturalLanding() {
                 The Dissolution of Form: Living Ebru Collection
               </h3>
               <p style={{ fontSize: '12px', fontFamily: 'var(--font-geist-mono), monospace', color: '#00f0ff', marginBottom: '16px' }}>
-                Traditional Marbling &bull; Mineral Pigments on Tragacanth &bull; Studio Emsdetten
+                Traditional Marbling &bull; Mineral Pigments on Tragacanth &bull; Independent Studio
               </p>
               <p style={{ fontSize: '13px', color: '#b5b2c2', lineHeight: 1.7 }}>
                 Reinterpreting 15th-century classical Turkish paper marbling through contemporary queer abstraction. Rather than rigid geometric motifs, colors expand organically across the fluid gum bath, reflecting the fluidity, vulnerability, and non-linear nature of human identity.
@@ -564,7 +564,7 @@ export default function PrizmaaCulturalLanding() {
             </div>
             <div style={{ marginTop: '28px', paddingTop: '16px', borderTop: '1px solid #1a1924', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#8e8b9e' }}>
-                Artist: Yusuf Şen
+                Artist: independent contributor
               </span>
               <a href="#partner" style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#ccff00', fontWeight: 700 }}>
                 Request Booking Inquiries ↗
@@ -902,7 +902,7 @@ export default function PrizmaaCulturalLanding() {
             fontFamily: 'var(--font-geist-mono), monospace',
           }}>
             <span>PRIZMAA &copy; 2026 &bull; Independent Queer Cultural Ecosystem</span>
-            <span>Founder &amp; Artistic Direction: Yusuf Şen &bull; PHI-BRAIN &times; ARGON PROTOCOL</span>
+            <span>Private preview &bull; No contributor identities disclosed</span>
           </div>
         </div>
       </footer>

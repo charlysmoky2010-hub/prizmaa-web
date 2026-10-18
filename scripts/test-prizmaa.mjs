@@ -176,14 +176,14 @@ try {
   const whoLikedFree = store.whoLikedMe(userA);
   assert(whoLikedFree.locked === true && whoLikedFree.count === 1 && whoLikedFree.people.length === 0, "Free user sees locked count without revealing identities");
 
-  store.upgradeVip(userA, true);
-  const whoLikedVip = store.whoLikedMe(userA);
-  assert(whoLikedVip.locked === false && whoLikedVip.count === 1 && whoLikedVip.people.length === 1 && whoLikedVip.people[0].id === userD, "VIP user unlocks full list of admirers for 1-click matching");
+  assert(typeof store.upgradeVip === "undefined", "Unverified VIP entitlement mutation is not exported");
+  const whoLikedStillLocked = store.whoLikedMe(userA);
+  assert(whoLikedStillLocked.locked === true && whoLikedStillLocked.count === 1 && whoLikedStillLocked.people.length === 0, "No paid feature unlocks without independently verified payment");
 
   // Test 10: GDPR Data Export
   const exportA = store.exportData(userA);
   assert(exportA.profile.handle === "denis_berlin", "Export contains correct profile handle");
-  assert(exportA.profile.is_vip === 1, "Export records active VIP status");
+  assert(exportA.profile.is_vip === 0, "Export preserves unpaid user status");
   assert(exportA.matches_count === 1, "Export contains matches count");
   assert(exportA.messages.length === 2, "Export contains complete chat history");
 
