@@ -43,3 +43,9 @@ next-env.d.ts
 # PRIZMAA local sensitive datastore (never commit)
 /data/*.sqlite*
 *.sqlite*
+
+/data/waitlist.csv
+/data/*.db
+/data/*.db-*
+/data/*.sqlite
+/data/*.sqlite-*
