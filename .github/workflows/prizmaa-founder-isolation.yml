@@ -1,0 +1,45 @@
+name: PRIZMAA Founder Security Isolation
+on:
+  pull_request:
+    paths:
+      - 'supabase/founder-isolated/**'
+      - '.github/workflows/prizmaa-founder-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-rls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      pg:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: founder_isolation_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d founder_isolation_ci"
+          --health-interval 5s
+          --health-timeout 4s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGDATABASE: founder_isolation_ci
+      PGUSER: postgres
+      PGPASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Prepare isolated mocked auth (no real people)
+        run: psql -v ON_ERROR_STOP=1 -f supabase/founder-isolated/tests/01_auth_fixture.sql
+      - name: Apply independent clean-room migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/founder-isolated/20261016_founder_v1.sql
+      - name: Prove member and profile RLS with actual PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/founder-isolated/tests/02_rls_tests.sql
