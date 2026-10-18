@@ -6,7 +6,15 @@ import { dirname, join } from "node:path";
 // Local-only prototype. No third-party identity, tracking, mail or location services.
 import { DatabaseSync } from "node:sqlite";
 type SqliteDb = { exec(sql: string): void; prepare(sql: string): { run(...args: (string|number|null)[]): unknown; get(...args: (string|number|null)[]): Record<string, unknown>|undefined; all(...args: (string|number|null)[]): Record<string,unknown>[] }; };
-const dbPath = () => process.env.PRIZMAA_DB_PATH || (process.env.VERCEL ? join("/tmp", "prizmaa-local.sqlite") : join(process.cwd(), "data", "prizmaa-local.sqlite"));
+// Never pretend a per-instance temporary SQLite file is a persistent production database.
+// Vercel ephemeral storage loses accounts between instances/restarts. Fail closed until
+// a durable database adapter is installed; PRIZMAA_DB_PATH is for local development only.
+const dbPath = () => {
+  if (process.env.VERCEL || process.env.NODE_ENV === "production" && process.env.PRIZMAA_ALLOW_LOCAL_PRODUCTION !== "true") {
+    throw new Error("PRIZMAA_PERSISTENT_DATABASE_REQUIRED");
+  }
+  return process.env.PRIZMAA_DB_PATH || join(process.cwd(), "data", "prizmaa-local.sqlite");
+};
 let active: SqliteDb|undefined;
 function db() {
   if (active) return active;
