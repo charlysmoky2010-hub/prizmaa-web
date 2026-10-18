@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: "An independent digital ecosystem for queer culture, creativity, community, opportunity, and belonging across Germany, the Netherlands, the Mediterranean, and Türkiye.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>{children}</body>
