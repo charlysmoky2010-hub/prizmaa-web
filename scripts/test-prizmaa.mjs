@@ -55,6 +55,7 @@ try {
 
   const userA = store.currentUser(tokenA);
   assert(userA !== null, "User A session resolves to member ID");
+  assert(store.self(userA).intent === "Friendship", "New members default to friendship instead of dating");
 
   // Test 3: User B registration
   const tokenB = store.register({
@@ -90,7 +91,7 @@ try {
     nickname: "Alex K.",
     age: 31,
     city: "Köln",
-    intent: "Dating",
+    intent: "Community",
     bio: "Design researcher in Rheinland.",
     visible: true,
     avatar_color: "rose",
@@ -107,6 +108,8 @@ try {
   assert(discoverA[0].avatar_color === "rose" && discoverA[0].role === "Top", "Discovery payload includes avatar & role");
 
   // Tag filter test
+  const communityResults = store.people(userA, { intent: "Community" });
+  assert(communityResults.length === 1 && communityResults[0].id === userB, "Community intent is saved and discoverable");
   const filteredByTag = store.people(userA, { tag: "Tech" });
   assert(filteredByTag.length === 1 && filteredByTag[0].id === userB, "Filter by tag 'Tech' finds User B");
 
