@@ -1,15 +1,11 @@
-import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { NextResponse } from "next/server";
 
-export async function POST(req: Request) {
-  const { email, consent } = await req.json();
-  const ok = typeof email === 'string' && /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(email);
-  if (!ok || consent !== true) {
-    return NextResponse.json({ error: 'invalid' }, { status: 400 });
-  }
-  const dir = path.join(process.cwd(), 'data');
-  await fs.mkdir(dir, { recursive: true });
-  await fs.appendFile(path.join(dir, 'waitlist.csv'), `${new Date().toISOString()},${email}\n`);
-  return NextResponse.json({ ok: true });
+// The previous CSV implementation saved addresses to transient local filesystem
+// storage. A real waitlist must first use consent records, retention controls
+// and a durable database. Never tell visitors that a signup was saved.
+export async function POST() {
+  return NextResponse.json(
+    { ok: false, error: "WAITLIST_NOT_OPEN" },
+    { status: 503, headers: { "Cache-Control": "no-store" } },
+  );
 }

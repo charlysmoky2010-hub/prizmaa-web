@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ApiError, cookieName, currentUser, register, login, logout, self, setProfile, people, like, matches, chat, send, block, report, erase, exportData, whoLikedMe, upgradeVip } from "@/lib/prizmaa/store";
+import { ApiError, cookieName, currentUser, register, login, logout, self, setProfile, people, like, matches, chat, send, block, report, erase, exportData, whoLikedMe } from "@/lib/prizmaa/store";
 
 const limiter = new Map<string,{count:number,reset:number}>();
 function limited(key:string,limit=15,period=60000) {
@@ -12,20 +12,28 @@ function limited(key:string,limit=15,period=60000) {
 }
 function guard(request:NextRequest,write=false) {
   const url=new URL(request.url);
-  const isPublic = !!process.env.VERCEL || process.env.ALLOW_PUBLIC_PREVIEW === "1" || process.env.NODE_ENV === "production";
-  if(!isPublic) {
-    if(process.env.PRIZMAA_LOCAL_MVP!=="1" || !["127.0.0.1","localhost","[::1]"].includes(url.hostname))
-      throw new ApiError(503,"PRIVATE_LOCAL_MVP_DISABLED");
-    const host=request.headers.get("host")||"";
-    if(!/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host))throw new ApiError(403,"LOOPBACK_ONLY");
+  const host=request.headers.get("host")||"";
+  // Development storage is local SQLite, not a durable multi-user production database.
+  // Never accept public registration/messages on Vercel even when preview flags are set.
+  if(process.env.VERCEL ||
+      process.env.PRIZMAA_LOCAL_MVP!=="1" ||
+      !["127.0.0.1","localhost","[::1]"].includes(url.hostname) ||
+      !/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host)) {
+    throw new ApiError(503,"PRIVATE_LOCAL_MVP_DISABLED");
   }
   if(write){
-    const host=request.headers.get("host")||"";
     const origin=request.headers.get("origin");
-    if(origin && new URL(origin).host!==host && !isPublic)throw new ApiError(403,"ORIGIN_MISMATCH");
+    if(origin){
+      let parsed:URL;
+      try{parsed=new URL(origin);}catch{throw new ApiError(403,"ORIGIN_MISMATCH");}
+      if(parsed.origin!==url.origin)throw new ApiError(403,"ORIGIN_MISMATCH");
+    }
+    if(request.headers.get("sec-fetch-site")==="cross-site")
+      throw new ApiError(403,"ORIGIN_MISMATCH");
     if(request.headers.get("content-type")?.split(";")[0].trim()!=="application/json")
       throw new ApiError(415,"JSON_ONLY");
-    if(Number(request.headers.get("content-length")||0)>8192)throw new ApiError(413,"BODY_TOO_LARGE");
+    if(Number(request.headers.get("content-length")||0)>8192)
+      throw new ApiError(413,"BODY_TOO_LARGE");
   }
 }
 const response=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer"}});
@@ -40,7 +48,7 @@ export async function GET(request:NextRequest){
   try {
     guard(request);
     const op=new URL(request.url).searchParams.get("op")||"health";
-    if(op==="health")return response({ok:true,mode:process.env.VERCEL?"PUBLIC_PREVIEW":"PRIVATE_LOCAL_MVP",features:["accounts","profiles","mutual-matches","messages","block","report","delete","vip-monetization"],public:!!process.env.VERCEL,ageVerification:"self-attested"});
+    if(op==="health")return response({ok:true,mode:process.env.VERCEL?"PUBLIC_PREVIEW":"PRIVATE_LOCAL_MVP",features:["accounts","profiles","mutual-matches","messages","block","report","delete"],public:false,ageVerification:"self-attested"});
     const user=required(request);
     if(op==="me")return response({ok:true,profile:self(user)});
     if(op==="people"){
@@ -81,16 +89,8 @@ export async function POST(request:NextRequest){
     if(op==="message"){limited("chat-"+user,12,60000);return response({ok:true,...send(user,target(b.target),b.text)});}
     if(op==="block")return response({ok:true,...block(user,target(b.target))});
     if(op==="report")return response({ok:true,...report(user,target(b.target),String(b.reason||""))});
-    if(op==="upgrade_vip"){
-      const updated=upgradeVip(user, true);
-      return response({
-        ok:true,
-        profile: updated,
-        plan: "PRIZMAA_PLUS_LIFETIME",
-        price_eur: 9.99,
-        stripe_payment_link: "https://buy.stripe.com/5kQ28r884dC670T9b36Na2f"
-      });
-    }
+    // Entitlements must be granted by a verified server-side payment webhook only.
+    if(op==="upgrade_vip")throw new ApiError(503,"PAYMENT_VERIFICATION_NOT_CONFIGURED");
     if(op==="delete_account"){
       if(b.confirm!=="DELETE MY ACCOUNT")throw new ApiError(400,"CONFIRM_DELETION");
       const outcome=erase(user);const r=response({ok:true,...outcome});

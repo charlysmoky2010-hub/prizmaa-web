@@ -181,6 +181,20 @@ export default function PrizmaaCulturalLanding() {
             🛡️ Camouflage (ESC)
           </button>
           <span>GERMANY &bull; NETHERLANDS &bull; GREECE &bull; TÜRKİYE</span>
+          <Link
+            href="/prizmaa"
+            style={{
+              color: '#b9f8f0',
+              border: '1px solid #78a8aa',
+              borderRadius: '6px',
+              padding: '5px 9px',
+              textDecoration: 'none',
+              fontWeight: 800,
+              fontSize: '10px',
+            }}
+          >
+            ✳ Explore PRIZMAA Social ↗
+          </Link>
         </div>
       </div>
 
