@@ -76,7 +76,7 @@ export default function PrizmaaCulturalLanding() {
   const [inquiryEmail, setInquiryEmail] = useState('');
   const [inquiryOrg, setInquiryOrg] = useState('');
   const [inquiryType, setInquiryType] = useState('WORKSHOP');
-  const [inquirySubmitted, setInquirySubmitted] = useState(false);
+  const [inquiryDraftUrl, setInquiryDraftUrl] = useState('');
   const [activeTab, setActiveTab] = useState('discover');
 
   // Emergency ESC key camouflage toggle for privacy
@@ -92,8 +92,24 @@ export default function PrizmaaCulturalLanding() {
 
   const handleInquirySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inquiryEmail) return;
-    setInquirySubmitted(true);
+    const email = inquiryEmail.trim();
+    const org = inquiryOrg.trim();
+    if (!email || !org) return;
+
+    // Until a durable, consent-aware CRM exists, use the visitor's email client.
+    // Never claim that an inquiry has been received without a delivery event.
+    const subject = `PRIZMAA institutional inquiry: ${inquiryType}`;
+    const body = [
+      `Organization: ${org}`,
+      `Contact email: ${email}`,
+      `Inquiry type: ${inquiryType}`,
+      '',
+      'Hello PRIZMAA team,',
+      'I would like to discuss a potential collaboration.',
+    ].join('\n');
+    const draftUrl = `mailto:charlysmoky2010@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setInquiryDraftUrl(draftUrl);
+    window.location.href = draftUrl;
   };
 
   // CAMOUFLAGE MODE (Emergency Academic / Botanical Note Disguise)
@@ -704,18 +720,30 @@ export default function PrizmaaCulturalLanding() {
             </p>
           </div>
 
-          {inquirySubmitted ? (
+          {inquiryDraftUrl ? (
             <div style={{
-              backgroundColor: '#0f1712',
-              border: '1px solid #22c55e',
+              backgroundColor: '#17151d',
+              border: '1px solid #665f73',
               padding: '24px',
               borderRadius: '8px',
               textAlign: 'center',
-              color: '#86efac',
+              color: '#e3dfec',
               fontFamily: 'var(--font-geist-mono), monospace',
               fontSize: '13px',
             }}>
-              ✓ INQUIRY RECEIVED. We will reach out with the official workshop curriculum and booking dossier within 48 hours.
+              <p style={{ margin: 0, fontWeight: 700 }}>EMAIL DRAFT PREPARED — NOT SENT</p>
+              <p style={{ margin: '12px 0' }}>
+                Please review the message in your email app and press Send. No inquiry has been received yet.
+                This website does not save the details you entered.
+              </p>
+              <a href={inquiryDraftUrl} style={{ display: 'inline-block', color: '#ccff00', padding: '8px' }}>
+                OPEN EMAIL DRAFT ↗
+              </a>
+              <button type="button" onClick={() => setInquiryDraftUrl('')} style={{
+                display: 'block', margin: '12px auto 0', background: 'transparent',
+                border: '1px solid #665f73', borderRadius: '4px', padding: '8px 12px',
+                color: '#e3dfec', cursor: 'pointer'
+              }}>EDIT DETAILS</button>
             </div>
           ) : (
             <form onSubmit={handleInquirySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -808,8 +836,11 @@ export default function PrizmaaCulturalLanding() {
                   letterSpacing: '0.5px',
                 }}
               >
-                SUBMIT INSTITUTIONAL INQUIRY ↗
+                PREPARE EMAIL TO CONTACT US ↗
               </button>
+              <p style={{ fontSize: '12px', color: '#8e8b9e', textAlign: 'center', marginTop: '2px' }}>
+                Your details are not stored here. An email draft opens in your mail app; you must send it yourself.
+              </p>
             </form>
           )}
 
