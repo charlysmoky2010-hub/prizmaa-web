@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types scripts/test-prizmaa.mjs"
+    "test": "node --experimental-strip-types scripts/test-prizmaa.mjs",
+    "test:member": "node --test scripts/test-prizmaa-member.mjs"
   },
   "dependencies": {
     "next": "16.4.0",
