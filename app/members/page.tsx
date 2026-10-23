@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import { ACCESS_COOKIE, REFRESH_COOKIE, resolveApprovedSession } from '../../lib/prizmaa/supabase-auth';
 import SignOutButton from './signout-button';
 
-export const dynamic = 'force-dynamic';
-
 export default async function MembersPage() {
   const jar = await cookies();
   const session = await resolveApprovedSession(
