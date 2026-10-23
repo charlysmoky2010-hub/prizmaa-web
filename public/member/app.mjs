@@ -38,7 +38,7 @@ async function loadPrivate() {
   byId("profile-form").hidden=!approved;
   byId("feedback-form").hidden=!approved;
   byId("feedback-delete").disabled=false;
-  const feedbackRows=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&order=created_at.desc&limit=90");
+  const feedbackRows=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&order=created_at.desc&limit=600");
   state.feedback=Array.isArray(feedbackRows)?feedbackRows:[];
   notice(byId("feedback-status"),"Stored ratings on this account: "+state.feedback.length+" (no free-text responses).");
   byId("export-btn").disabled=false;
@@ -120,7 +120,7 @@ byId("feedback-delete").addEventListener("click",async()=>{
 byId("export-btn").addEventListener("click",async()=>{
   if(!state.token||!state.user)return;
   try {
-    const own=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+encodeURIComponent(state.user.id)+"&order=created_at.desc&limit=90");
+    const own=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+encodeURIComponent(state.user.id)+"&order=created_at.desc&limit=600");
     if(!Array.isArray(own))throw Error("EXPORT_UNVERIFIED");
     state.feedback=own;
   } catch { notice(byId("feedback-status"),"Export was stopped because the feedback history could not be verified.",true); return; }
