@@ -45,3 +45,5 @@ jobs:
         run: npm test
       - name: Next.js production build
         run: npm run build
+      - name: Verify protected routes fail closed in production build
+        run: node scripts/test-prizmaa-auth-routes.mjs
