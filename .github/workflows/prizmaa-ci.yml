@@ -43,5 +43,7 @@ jobs:
           fi
       - name: Member safety and permission tests
         run: npm test
+      - name: Consent-based member learning and privacy regression tests
+        run: npm run test:member
       - name: Next.js production build
         run: npm run build
