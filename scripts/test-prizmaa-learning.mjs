@@ -56,3 +56,19 @@ test("safety priorities are non-identifying and review-gated",()=>{
    assert.ok(!JSON.stringify(decision).includes("synthetic-one"));
  }
 });
+
+test("browser proof serves the exact tested policy, never a fork",async()=>{
+  const {readFileSync}=await import("node:fs");
+  const {fileURLToPath}=await import("node:url");
+  const {resolve,dirname}=await import("node:path");
+  const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
+  const read=p=>readFileSync(resolve(root,p),"utf8");
+  assert.equal(read("public/member/quality-learning.mjs"),
+               read("lib/prizmaa/quality-learning.mjs"));
+  const page=read("public/member/proof.html");
+  const js=read("public/member/proof.mjs");
+  assert.match(page,/connect-src 'none'/);
+  assert.match(page,/Synthetic demonstration only/);
+  assert.match(js,/learnFromSyntheticRatings/);
+  assert.doesNotMatch(js,/\bfetch\s*\(|\blocalStorage\b/);
+});
