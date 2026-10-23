@@ -266,6 +266,7 @@ export default function PrizmaaCulturalLanding() {
             <a href="#partner" style={{ fontSize: '13px', color: '#ccff00', textDecoration: 'none', fontWeight: 700 }}>
               Institutional Partner Space
             </a>
+            <Link href="/login" style={{ fontSize: "12px", color: "#ccff00", textDecoration: "none", fontWeight: 700 }}>Member sign-in</Link>
             <Link
               href="/prizmaa/app"
               style={{
