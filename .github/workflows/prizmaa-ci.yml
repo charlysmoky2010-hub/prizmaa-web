@@ -47,5 +47,7 @@ jobs:
         run: npm run test:member
       - name: Adaptive quality learning tests (no production data)
         run: npm run test:learning
+      - name: Self-repair safety and rollback contract tests
+        run: npm run test:repair
       - name: Next.js production build
         run: npm run build
