@@ -1,15 +1,16 @@
-import { memberApproved, normalizeProfile, privateExport } from "./core.mjs";
+import { memberApproved, normalizeProfile, privateExport, normalizeFeedback } from "./core.mjs";
 const BASE = "https://iyxmfiyvikrbfrscsaja.supabase.co";
 const PUBLISHABLE = "sb_publishable_atY2p6cb7N0qpQrhCngO6A_LrSdBCDw";
 const byId = (id) => document.getElementById(id);
-const state = { token: null, user: null, member: null, profile: null };
+const state = { token: null, user: null, member: null, profile: null, feedback: [] };
 const authStatus = byId("auth-status"), profileStatus = byId("profile-status");
 const notice = (el,text,error=false) => { el.textContent=text; el.classList.toggle("error", error); };
 const setHidden = (id,yes) => { byId(id).hidden=!!yes; };
 function reset() {
-  state.token=null; state.user=null; state.member=null; state.profile=null;
+  state.token=null; state.user=null; state.member=null; state.profile=null;state.feedback=[];
   setHidden("private-area",true);setHidden("public-area",false);
-  byId("profile-form").hidden=true;
+  byId("profile-form").hidden=true;byId("feedback-form").hidden=true;
+  byId("feedback-delete").disabled=true;byId("feedback-form").reset();
   byId("export-btn").disabled=true;byId("delete-btn").disabled=true;
   byId("sign-in").reset();byId("profile-form").reset();
   notice(authStatus,"Invite-only beta. No public accounts or profiles are shown.");
@@ -35,6 +36,11 @@ async function loadPrivate() {
   byId("member-state").textContent=approved?"Verified invited member":"Invitation review required";
   byId("member-notice").textContent=approved?"Your profile is private and only editable by you.":"A verified adult invitation is required. Profile access and public discovery remain blocked.";
   byId("profile-form").hidden=!approved;
+  byId("feedback-form").hidden=!approved;
+  byId("feedback-delete").disabled=false;
+  const feedbackRows=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&order=created_at.desc&limit=90");
+  state.feedback=Array.isArray(feedbackRows)?feedbackRows:[];
+  notice(byId("feedback-status"),"Stored ratings on this account: "+state.feedback.length+" (no free-text responses).");
   byId("export-btn").disabled=false;
   byId("delete-btn").disabled=!approved;
   if(approved) {
@@ -81,12 +87,44 @@ byId("profile-form").addEventListener("submit",async(e)=>{
     notice(profileStatus,"Saved to private authenticated storage. Public discovery remains OFF.");
   }catch(err){
     const kind=String(err?.message||"");
-    notice(profileStatus,kind==="NAME_LENGTH"?"Use a name of 2–40 characters.":kind==="LOCATION_UNSAFE"?"Use a general region, not a postal code or coordinates.":kind==="BIO_LENGTH"?"Bio must be under 400 characters.":"Save was not confirmed. No public profile was created.",true);
+    notice(profileStatus,kind==="NAME_LENGTH"?"Use a name of 2–36 characters.":kind==="LOCATION_UNSAFE"?"Use a general region, not a postal code or coordinates.":kind==="BIO_LENGTH"?"Bio must be under 400 characters.":"Save was not confirmed. No public profile was created.",true);
   }finally{btn.disabled=false;}
 });
-byId("export-btn").addEventListener("click",()=>{
+byId("feedback-form").addEventListener("submit",async(e)=>{
+  e.preventDefault();
+  if(!state.token||!state.user||!memberApproved(state.member))return;
+  const form=e.currentTarget,btn=byId("feedback-btn");
+  btn.disabled=true;
+  try{
+    const data=normalizeFeedback(form.elements.namedItem("area").value,form.elements.namedItem("rating").value,form.elements.namedItem("consent").checked);
+    const rows=await api("/rest/v1/prizmaa_product_feedback",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({...data,user_id:state.user.id})});
+    if(!Array.isArray(rows)||rows.length!==1||rows[0].user_id!==state.user.id)throw Error("NOT_CONFIRMED");
+    state.feedback.unshift({feedback_id:rows[0].feedback_id,area:data.area,rating:data.rating,created_at:rows[0].created_at});
+    form.reset();
+    notice(byId("feedback-status"),"Thank you. Your optional rating was recorded. No profile or private conversations were analyzed.");
+  }catch(err){
+    const m=String(err?.message||"");
+    notice(byId("feedback-status"),m==="FEEDBACK_CONSENT_REQUIRED"?"Please choose whether to opt in.":m==="FEEDBACK_AREA_INVALID"||m==="FEEDBACK_RATING_INVALID"?"Choose a valid area and rating.":"This rating was not confirmed. You may have already rated this area today.",true);
+  }finally{btn.disabled=false;}
+});
+byId("feedback-delete").addEventListener("click",async()=>{
   if(!state.token||!state.user)return;
-  const report=privateExport(state.user,state.member,state.profile);
+  if(window.prompt("Type DELETE FEEDBACK to erase your optional product ratings.")!=="DELETE FEEDBACK")return;
+  const btn=byId("feedback-delete");btn.disabled=true;
+  try{
+    await api("/rest/v1/prizmaa_product_feedback?user_id=eq."+encodeURIComponent(state.user.id),{method:"DELETE"});
+    state.feedback=[];
+    notice(byId("feedback-status"),"Your ratings were deleted. Aggregated historical quality signals are not user identifiable.");
+  }catch{notice(byId("feedback-status"),"Feedback deletion could not be confirmed.",true);}finally{btn.disabled=false;}
+});
+byId("export-btn").addEventListener("click",async()=>{
+  if(!state.token||!state.user)return;
+  try {
+    const own=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+encodeURIComponent(state.user.id)+"&order=created_at.desc&limit=90");
+    if(!Array.isArray(own))throw Error("EXPORT_UNVERIFIED");
+    state.feedback=own;
+  } catch { notice(byId("feedback-status"),"Export was stopped because the feedback history could not be verified.",true); return; }
+  const report={...privateExport(state.user,state.member,state.profile),optional_feedback:state.feedback};
   const data=new Blob([JSON.stringify(report,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(data);
   const a=document.createElement("a");a.href=url;a.download="prizmaa-my-private-data.json";a.click();
@@ -117,5 +155,5 @@ byId("quickhide").addEventListener("click",()=>cover(true));
 byId("restore").addEventListener("click",()=>cover(false));
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();cover(!document.body.classList.contains("covered"));}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)cover(true);});
-window.addEventListener("pagehide",()=>{state.token=null;state.user=null;state.member=null;state.profile=null;});
+window.addEventListener("pagehide",()=>{state.token=null;state.user=null;state.member=null;state.profile=null;state.feedback=[];});
 reset();
