@@ -3,6 +3,11 @@ import { redirect } from 'next/navigation';
 import { ACCESS_COOKIE, REFRESH_COOKIE, resolveApprovedSession } from '../../lib/prizmaa/supabase-auth';
 import SignOutButton from './signout-button';
 
+// This private route reads request cookies and must render per request.
+// With Next.js 16 Cache Components, blocking is intentional here: no member data
+// or redirect decisions should be prerendered/streamed to unauthenticated users.
+export const instant = false;
+
 export default async function MembersPage() {
   const jar = await cookies();
   const session = await resolveApprovedSession(
