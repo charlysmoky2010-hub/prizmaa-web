@@ -48,3 +48,24 @@ test("browser adapter has no signup, token storage, tracking or service secrets"
   assert.ok(app.includes("/auth/v1/user"));
   assert.ok(app.includes("/rest/v1/prizmaa_private_profiles"));
 });
+
+test("server constraints align with client profile limits",()=>{
+ assert.equal(normalizeProfile({display_name:"x".repeat(36),location_label:"a".repeat(44),bio:"x"}).display_name.length,36);
+ assert.throws(()=>normalizeProfile({display_name:"x".repeat(37)}));
+ assert.throws(()=>normalizeProfile({display_name:"Valid",location_label:"x".repeat(45)}));
+});
+test("feedback requires consent, recognized area and bounded rating",async()=>{
+ const {normalizeFeedback}=await import("../public/member/core.mjs");
+ assert.deepEqual(normalizeFeedback("privacy",5,true),{area:"privacy",rating:5});
+ assert.throws(()=>normalizeFeedback("privacy",5,false));
+ assert.throws(()=>normalizeFeedback("sexual_orientation",5,true));
+ assert.throws(()=>normalizeFeedback("privacy",6,true));
+});
+test("consent UI and owner scoped feedback deletion exist",()=>{
+ const html=read("public/member/index.html"),app=read("public/member/app.mjs");
+ assert.match(html,/name="consent" required/);
+ assert.match(app,/prizmaa_product_feedback/);
+ assert.match(app,/feedback-delete/);
+ assert.match(app,/user_id=eq\./);
+ assert.ok(!app.includes("localStorage"));
+});
