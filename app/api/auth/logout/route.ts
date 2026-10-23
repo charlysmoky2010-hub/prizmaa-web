@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sameOrigin } from '../../../../lib/prizmaa/same-origin';
 import { ACCESS_COOKIE, clearSessionCookies, revokeAccess } from '../../../../lib/prizmaa/supabase-auth';
 
 export async function POST(request: NextRequest) {
-  if (request.headers.get('origin') !== request.nextUrl.origin) {
+  if (!sameOrigin(request)) {
     return NextResponse.json({ error: 'FORBIDDEN_ORIGIN' }, { status: 403 });
   }
   const access = request.cookies.get(ACCESS_COOKIE)?.value;
