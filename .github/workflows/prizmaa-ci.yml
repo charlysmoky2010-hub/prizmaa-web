@@ -49,6 +49,8 @@ jobs:
         run: npm run test:learning
       - name: Self-repair safety and rollback contract tests
         run: npm run test:repair
+      - name: Unified PRIZMAA infrastructure integration checks
+        run: npm run test:architecture
       - name: Next.js production build
         run: npm run build
 
