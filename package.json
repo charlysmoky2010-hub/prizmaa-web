@@ -9,7 +9,8 @@
     "test": "node --experimental-strip-types scripts/test-prizmaa.mjs",
     "test:member": "node --test scripts/test-prizmaa-member.mjs",
     "test:learning": "node --test scripts/test-prizmaa-learning.mjs",
-    "test:repair": "node --test scripts/test-prizmaa-repair.mjs"
+    "test:repair": "node --test scripts/test-prizmaa-repair.mjs",
+    "test:architecture": "node --test scripts/test-prizmaa-architecture.mjs"
   },
   "dependencies": {
     "next": "16.4.0",
