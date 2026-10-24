@@ -58,3 +58,9 @@ test("consent, safety and honest incomplete-status disclosure visible",()=>{
   assert.match(page,/Self-registration is disabled/);
   assert.match(page,/Full account export and account deletion are not automated/);
 });
+
+const home=read("app/page.tsx");
+test("site root and /prizmaa point to one member application",()=>{
+  assert.match(home,/redirect\('\/prizmaa\/app'\)/);
+  assert.match(root,/redirect\('\/prizmaa\/app'\)/);
+});
