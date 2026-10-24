@@ -351,7 +351,7 @@ export default function PrizmaaMemberApp() {
           )}
         </>
       )}
-      <footer className={styles.footer}>PRIZMAA · Private alpha · DE / EN infrastructure · No public onboarding · No synthetic members · No claims of autonomous consciousness.</footer>
+      <footer className={styles.footer}>PRIZMAA · Private alpha · English alpha · German localization pending · No public onboarding · No synthetic members · No claims of autonomous consciousness.</footer>
     </main>
   );
 }
