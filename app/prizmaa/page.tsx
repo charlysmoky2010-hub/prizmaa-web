@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function PrizmaaGatewayPage() {
-  redirect('/');
+export default function PrizmaaRoot() {
+  redirect('/prizmaa/app');
 }
