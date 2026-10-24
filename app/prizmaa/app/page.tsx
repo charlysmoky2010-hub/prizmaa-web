@@ -1,755 +1,357 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import { useState } from "react";
+import styles from "./app.module.css";
+import {
+  login, logout, ownData, ownId, verified, cleanProfile, assertUUID, saveDownload,
+  type Session, type Member, type Profile, type Rating, type Match, type Message,
+  type ReportReason
+} from "@/lib/prizmaa/member-api";
 
-type CulturalNode = {
-  id: string;
-  title: string;
-  category: 'ARCHIVE' | 'STUDIO' | 'COMMUNITY' | 'EXHIBITION';
-  region: string;
-  city: string;
-  disciplines: string;
-  description: string;
-  accessibility: string;
-  status: 'VERIFIED' | 'DEMONSTRATION';
-};
+type Tab = "profile" | "connections" | "feedback" | "safety";
+const FEEDBACK_AREAS = ["onboarding","profile","privacy","navigation","accessibility","reliability"] as const;
+const SAFE_REPORT_REASONS: ReportReason[] = ["harassment","spam","fake_profile","unsafe_behavior","other"];
 
-const NODES: CulturalNode[] = [
-  {
-    id: 'node-01',
-    title: 'Living Ebru Studio & Archive',
-    category: 'STUDIO',
-    region: 'DE_WEST',
-    city: 'Emsdetten / Münsterland',
-    disciplines: 'Traditional Paper Marbling, Queer Abstraction, Mineral Pigments',
-    description: 'Working atelier and documentation archive of Yusuf Şen. Dedicated to classical Ottoman/Turkish paper marbling (Ebru) reimagined through contemporary queer visual abstraction and non-binary color fluidity.',
-    accessibility: 'Step-free studio access, tactile workshops, quiet sessions available upon request.',
-    status: 'VERIFIED',
-  },
-  {
-    id: 'node-02',
-    title: 'Schwules Museum & Research Archive',
-    category: 'ARCHIVE',
-    region: 'DE_BERLIN',
-    city: 'Berlin',
-    disciplines: 'Queer History, Archival Research, Photography, Visual Culture',
-    description: 'One of the world’s foremost independent institutions for preserving, curating, and exhibiting LGBTQ+ artistic, social, and political histories across Central Europe.',
-    accessibility: 'Full wheelchair accessibility, elevator, gender-neutral restrooms, plain language audio guides.',
-    status: 'VERIFIED',
-  },
-  {
-    id: 'node-03',
-    title: 'IHLIA LGBTI Heritage & Documentation Center',
-    category: 'ARCHIVE',
-    region: 'NL_AMSTERDAM',
-    city: 'Amsterdam',
-    disciplines: 'Literature, Oral History, Periodical Archives, International Research',
-    description: 'The largest LGBTI archive in Europe, housing over 100,000 items covering Dutch, Mediterranean, and global queer literature, activist ephemera, and photography.',
-    accessibility: 'Housed within OBA Oosterdok; fully accessible, assistive listening systems available.',
-    status: 'DEMONSTRATION',
-  },
-  {
-    id: 'node-04',
-    title: 'Homoculture Lab & Visual Arts Circle',
-    category: 'COMMUNITY',
-    region: 'GR_THESSALONIKI',
-    city: 'Thessaloniki',
-    disciplines: 'Moving Image, Feminist Zines, Mediterranean Queer Theory',
-    description: 'An independent grassroots cultural space hosting open seminars, experimental cinema screenings, and community discussions on queer aesthetics across the Aegean and Balkans.',
-    accessibility: 'Street-level entrance, Greek & English subtitled screenings, relaxed seating area.',
-    status: 'DEMONSTRATION',
-  },
-  {
-    id: 'node-05',
-    title: 'SPoD & Queer Cultural Documentation Initiative',
-    category: 'COMMUNITY',
-    region: 'TR_ISTANBUL',
-    city: 'Istanbul / Kadıköy',
-    disciplines: 'Legal Advocacy, Grassroots Solidarity, Oral History Archives',
-    description: 'Civil rights and cultural collective fostering safe public dialogues, artistic exhibitions, and community legal support in an increasingly restrictive administrative climate.',
-    accessibility: 'Discreet meeting environment, virtual attendance options for high-risk participants.',
-    status: 'DEMONSTRATION',
-  },
-  {
-    id: 'node-06',
-    title: 'De Pijp Cultural & Residency Salon',
-    category: 'EXHIBITION',
-    region: 'NL_AMSTERDAM',
-    city: 'Amsterdam',
-    disciplines: 'Visual Arts, Contemporary Design, Public Programming',
-    description: 'A neighborhood salon celebrating queer cross-disciplinary makers, hosting seasonal pop-up exhibitions and international creative residencies.',
-    accessibility: 'Ground floor exhibition space with sensory-friendly morning hours.',
-    status: 'DEMONSTRATION',
-  },
-];
+export default function PrizmaaMemberApp() {
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [session,setSession]=useState<Session|null>(null);
+  const [member,setMember]=useState<Member|null>(null);
+  const [profile,setProfile]=useState<Profile|null>(null);
+  const [ratings,setRatings]=useState<Rating[]>([]);
+  const [matches,setMatches]=useState<Match[]>([]);
+  const [peer,setPeer]=useState<Match|null>(null);
+  const [messages,setMessages]=useState<Message[]>([]);
+  const [draft,setDraft]=useState("");
+  const [displayName,setDisplayName]=useState("");
+  const [region,setRegion]=useState("");
+  const [bio,setBio]=useState("");
+  const [feedbackArea,setFeedbackArea]=useState<(typeof FEEDBACK_AREAS)[number]>("privacy");
+  const [feedbackRating,setFeedbackRating]=useState(3);
+  const [feedbackConsent,setFeedbackConsent]=useState(false);
+  const [reportReason,setReportReason]=useState<ReportReason>("harassment");
+  const [tab,setTab]=useState<Tab>("profile");
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState("Invite-only beta · No public sign-ups or public discovery.");
+  const [error,setError]=useState(false);
+  const [covered,setCovered]=useState(false);
+  const approved=verified(member);
 
-type Exhibition = {
-  id: string;
-  title: string;
-  artist: string;
-  medium: string;
-  region: string;
-  description: string;
-  status: 'VERIFIED' | 'DEMONSTRATION';
-};
-
-const EXHIBITIONS: Exhibition[] = [
-  {
-    id: 'ex-01',
-    title: 'The Dissolution of Form: Living Ebru Collection',
-    artist: 'Yusuf Şen',
-    medium: 'Mineral Earth Pigments & Ox Gall on Aqueous Tragacanth Substrate',
-    region: 'Emsdetten / Berlin',
-    description: 'Reinterpreting 15th-century Turkish marbling through fluid queer abstraction. Colors disperse without boundary constraints, embodying identity beyond imposed binary grids.',
-    status: 'VERIFIED',
-  },
-  {
-    id: 'ex-02',
-    title: 'Queer Pictorial Language in Moving Image',
-    artist: 'Yusuf Şen (Master of Arts Thesis Archive)',
-    medium: 'Experimental Video, Temporal Disruption & Soundscape',
-    region: 'Münsterland / Athens',
-    description: 'Academic and visual research into how the queer body resists disciplinary surveillance through temporal deceleration, chromatic saturation, and deconstructed cinematic grammar.',
-    status: 'VERIFIED',
-  },
-  {
-    id: 'ex-03',
-    title: 'Aegean Light & Transnational Margins',
-    artist: 'Collaborative Mediterranean Circle',
-    medium: '35mm Film Photography & Hand-printed Silver Gelatin',
-    region: 'Thessaloniki / Izmir',
-    description: 'Visual chronicles of shared maritime heritage, migration, and hidden queer meeting grounds across the Aegean coastline.',
-    status: 'DEMONSTRATION',
-  },
-];
-
-type Opportunity = {
-  id: string;
-  title: string;
-  organizer: string;
-  type: string;
-  region: string;
-  deadline: string;
-  stipend: string;
-  description: string;
-};
-
-const OPPORTUNITIES: Opportunity[] = [
-  {
-    id: 'opp-01',
-    title: 'Queer Moving Image & Archival Fellowship 2027',
-    organizer: 'Trans-European Cultural Exchange',
-    type: 'Research Fellowship',
-    region: 'Berlin / Amsterdam',
-    deadline: 'December 15, 2026',
-    stipend: '€2,400 / month + Studio',
-    description: 'Three-month residency supporting researchers and artists examining queer memory, film theory, and independent video archives in Western and Southern Europe.',
-  },
-  {
-    id: 'opp-02',
-    title: 'Traditional Craft & Contemporary Form Residency',
-    organizer: 'Münsterland Regional Arts Initiative',
-    type: 'Production Residency',
-    region: 'Münsterland / Emsdetten',
-    deadline: 'January 30, 2027',
-    stipend: '€1,800 + Material Grant',
-    description: 'Inviting artists working at the intersection of heritage craft (textiles, marbling, ceramic) and contemporary non-normative community practices.',
-  },
-];
-
-export default function PrizmaaPlatformDirectory() {
-  const [activeTab, setActiveTab] = useState<'nodes' | 'exhibitions' | 'opportunities' | 'privacy'>('nodes');
-  const [selectedRegion, setSelectedRegion] = useState('ALL');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [camouflage, setCamouflage] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<CulturalNode | null>(null);
-
-  // ESC key instant camouflage
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setCamouflage((prev) => !prev);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const filteredNodes = useMemo(() => {
-    return NODES.filter((n) => {
-      if (selectedRegion !== 'ALL' && n.region !== selectedRegion) return false;
-      if (selectedCategory !== 'ALL' && n.category !== selectedCategory) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const mTitle = n.title.toLowerCase().includes(q);
-        const mCity = n.city.toLowerCase().includes(q);
-        const mDesc = n.description.toLowerCase().includes(q);
-        const mDisc = n.disciplines.toLowerCase().includes(q);
-        if (!mTitle && !mCity && !mDesc && !mDisc) return false;
-      }
-      return true;
-    });
-  }, [selectedRegion, selectedCategory, searchQuery]);
-
-  if (camouflage) {
-    return (
-      <main style={{
-        minHeight: '100vh',
-        backgroundColor: '#faf8f5',
-        color: '#2e2a27',
-        fontFamily: 'serif',
-        padding: '60px 24px',
-        maxWidth: '800px',
-        margin: '0 auto',
-        lineHeight: 1.8,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #dcd5cc', paddingBottom: '16px', marginBottom: '32px' }}>
-          <span style={{ fontSize: '13px', letterSpacing: '1px', textTransform: 'uppercase', color: '#7a7065' }}>
-            Notebook // Traditional Turkish Ebru Paper Marbling Studies
-          </span>
-          <button
-            onClick={() => setCamouflage(false)}
-            style={{ background: 'none', border: '1px solid #dcd5cc', padding: '4px 12px', fontSize: '12px', cursor: 'pointer', borderRadius: '4px' }}
-          >
-            Restore Interface (ESC)
-          </button>
-        </div>
-        <h1 style={{ fontSize: '28px', fontWeight: 'normal', marginBottom: '16px' }}>
-          Pigment Viscosity & Ox Gall Ratios on Tragacanth Gum Bath
-        </h1>
-        <p>
-          The behavior of mineral earth pigments (iron oxides, ochre, lapis lazuli) upon an aqueous tragacanth (kitre) substrate is fundamentally governed by surface tension reduction through ox gall (sığır ödü).
-        </p>
-      </main>
-    );
+  function flash(text:string,fail=false){setMessage(text);setError(fail);}
+  function clearSession(){
+    setSession(null);setMember(null);setProfile(null);setRatings([]);setMatches([]);setPeer(null);
+    setMessages([]);setPassword("");setDraft("");setFeedbackConsent(false);setTab("profile");
   }
-
+  async function task(action:()=>Promise<void>) {
+    if(busy)return;
+    setBusy(true);setError(false);
+    try{await action();}catch(cause){
+      flash(cause instanceof Error?cause.message:"This action was not verified. Please try again.",true);
+    }finally{setBusy(false);}
+  }
+  async function loginMember(e:React.FormEvent<HTMLFormElement>){
+    e.preventDefault();
+    await task(async()=>{
+      const s=await login(email,password);
+      setPassword("");
+      const id=ownId(s);
+      const [memberRows,profileRows,feedbackRows]=await Promise.all([
+        ownData<Member[]>(s,"/rest/v1/prizmaa_private_members?select=member_role,membership_state,adult_review_state&user_id=eq."+id),
+        ownData<Profile[]>(s,"/rest/v1/prizmaa_private_profiles?select=*&user_id=eq."+id),
+        ownData<Rating[]>(s,"/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&limit=600")
+      ]);
+      setSession(s);setMember(memberRows[0]||null);
+      const p=profileRows[0]||null;
+      setProfile(p);setRatings(feedbackRows);
+      setDisplayName(p?.display_name||"");setRegion(p?.location_label||"");setBio(p?.bio||"");
+      flash(verified(memberRows[0]||null)?
+        "Authenticated private workspace. Your profile is hidden from public discovery.":
+        "Authenticated, but verified adult invitation is required. Personal editing is locked.");
+    });
+  }
+  async function saveProfile(e:React.FormEvent<HTMLFormElement>){
+    e.preventDefault();if(!session||!approved)return;
+    await task(async()=>{
+      const payload={...cleanProfile(displayName,region,bio),user_id:session.userId};
+      const rows=await ownData<Profile[]>(session,
+        "/rest/v1/prizmaa_private_profiles?on_conflict=user_id",
+        {method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(payload)});
+      const p=rows[0];
+      if(!p||p.user_id!==session.userId||p.visible_in_discovery!==false)
+        throw Error("The private profile write was not confirmed.");
+      setProfile(p);flash("Private profile saved in Supabase. Discovery remains disabled.");
+    });
+  }
+  async function refreshConnections(){
+    if(!session||!approved)return;
+    await task(async()=>{
+      const rows=await ownData<Match[]>(session,"/rest/v1/rpc/prizmaa_my_matches");
+      if(!Array.isArray(rows))throw Error("Match verification failed.");
+      setMatches(rows);setPeer(null);setMessages([]);
+      flash(rows.length===0?
+        "No mutual connections. Public discovery is intentionally disabled in this beta.":
+        "Your mutual, authorized connections were loaded.");
+    });
+  }
+  async function openConversation(p:Match){
+    if(!session||!approved)return;
+    await task(async()=>{
+      assertUUID(p.user_id);
+      if(!matches.some(m=>m.user_id===p.user_id))throw Error("This connection is not verified.");
+      const rows=await ownData<Message[]>(session,
+        "/rest/v1/prizmaa_messages?select=message_id,sender_id,recipient_id,body,created_at&or=(sender_id.eq."+
+        session.userId+",recipient_id.eq."+session.userId+")&order=created_at.asc&limit=100");
+      setPeer(p);
+      setMessages(rows.filter(m=>[m.sender_id,m.recipient_id].includes(session.userId)&&
+        [m.sender_id,m.recipient_id].includes(p.user_id)));
+      flash("Conversation opened. Database rules restrict reads to authorized mutual matches.");
+    });
+  }
+  async function sendMessage(e:React.FormEvent<HTMLFormElement>){
+    e.preventDefault();if(!session||!peer||!approved)return;
+    await task(async()=>{
+      const body=draft.trim();
+      if(body.length<1||body.length>1000)throw Error("Messages must be 1–1000 characters.");
+      if(!matches.some(m=>m.user_id===peer.user_id))throw Error("Connection is no longer available.");
+      const rows=await ownData<Message[]>(session,"/rest/v1/prizmaa_messages",
+        {method:"POST",headers:{Prefer:"return=representation"},
+        body:JSON.stringify({sender_id:session.userId,recipient_id:assertUUID(peer.user_id),body})});
+      const saved=rows[0];
+      if(!saved||saved.sender_id!==session.userId||saved.recipient_id!==peer.user_id)throw Error("Send not confirmed.");
+      setMessages(previous=>[...previous,saved]);setDraft("");flash("Message stored. No public chat was opened.");
+    });
+  }
+  async function blockPeer(){
+    if(!session||!peer||!approved||!window.confirm("Block this connection? This will prevent further contact."))return;
+    await task(async()=>{
+      const rows=await ownData<{blocker_id:string;blocked_id:string}[]>(session,"/rest/v1/prizmaa_blocks",
+        {method:"POST",headers:{Prefer:"return=representation"},
+        body:JSON.stringify({blocker_id:session.userId,blocked_id:assertUUID(peer.user_id)})});
+      if(!rows.some(b=>b.blocker_id===session.userId&&b.blocked_id===peer.user_id))
+        throw Error("Block could not be confirmed.");
+      setMatches(prev=>prev.filter(m=>m.user_id!==peer.user_id));
+      setPeer(null);setMessages([]);flash("Connection blocked. Messaging access is revoked by database policy.");
+    });
+  }
+  async function reportPeer(){
+    if(!session||!peer||!approved||!window.confirm("Submit this safety report to PRIZMAA?"))return;
+    await task(async()=>{
+      const rows=await ownData<{report_id:string;reporter_id:string}[]>(session,"/rest/v1/prizmaa_reports",
+        {method:"POST",headers:{Prefer:"return=representation"},
+        body:JSON.stringify({reporter_id:session.userId,reported_id:assertUUID(peer.user_id),reason:reportReason,details:""})});
+      if(!rows[0]?.report_id||rows[0]?.reporter_id!==session.userId)
+        throw Error("Safety report was not confirmed.");
+      flash("Report recorded. A human moderation response is not automated in this beta.");
+    });
+  }
+  async function sendFeedback(e:React.FormEvent<HTMLFormElement>){
+    e.preventDefault();if(!session||!approved)return;
+    await task(async()=>{
+      if(!feedbackConsent)throw Error("Feedback requires explicit opt-in.");
+      if(!FEEDBACK_AREAS.includes(feedbackArea)||!Number.isInteger(feedbackRating)||feedbackRating<1||feedbackRating>5)
+        throw Error("Feedback rating is invalid.");
+      const rows=await ownData<(Rating & {user_id:string})[]>(session,"/rest/v1/prizmaa_product_feedback",
+        {method:"POST",headers:{Prefer:"return=representation"},
+        body:JSON.stringify({user_id:session.userId,area:feedbackArea,rating:feedbackRating})});
+      if(rows.length!==1||rows[0].user_id!==session.userId)throw Error("Feedback was not confirmed.");
+      setRatings(prev=>[{...rows[0]},...prev]);setFeedbackConsent(false);
+      flash("Opt-in rating stored. No private messages are used for model training.");
+    });
+  }
+  async function exportOwnData(){
+    if(!session)return;
+    await task(async()=>{
+      const id=ownId(session);
+      const [ownProfile,ownFeedback]=await Promise.all([
+        ownData<Profile[]>(session,"/rest/v1/prizmaa_private_profiles?select=*&user_id=eq."+id),
+        ownData<Rating[]>(session,"/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&limit=600")
+      ]);
+      saveDownload("prizmaa-private-profile-feedback.json",{exported_at:new Date().toISOString(),
+        scope:"profile_and_feedback_only",email:session.email,profile:ownProfile[0]||null,feedback:ownFeedback});
+      flash("Private profile and feedback download created locally. This is not a full account export.");
+    });
+  }
+  async function deleteProfile(){
+    if(!session||!approved||!window.confirm("Permanently delete your private profile? Your login account will remain."))return;
+    await task(async()=>{
+      const id=ownId(session);
+      await ownData<null>(session,"/rest/v1/prizmaa_private_profiles?user_id=eq."+id,{method:"DELETE"});
+      const check=await ownData<Profile[]>(session,"/rest/v1/prizmaa_private_profiles?select=user_id&user_id=eq."+id);
+      if(check.length!==0)throw Error("Profile deletion has not been verified.");
+      setProfile(null);setDisplayName("");setRegion("");setBio("");
+      flash("Private profile deletion verified. Account deletion requires a separate controlled process.");
+    });
+  }
+  async function deleteFeedback(){
+    if(!session||!approved||!window.confirm("Delete your voluntary feedback records?"))return;
+    await task(async()=>{
+      const id=ownId(session);
+      await ownData<null>(session,"/rest/v1/prizmaa_product_feedback?user_id=eq."+id,{method:"DELETE"});
+      const check=await ownData<Rating[]>(session,"/rest/v1/prizmaa_product_feedback?select=feedback_id&user_id=eq."+id);
+      if(check.length)throw Error("Feedback deletion was not verified.");
+      setRatings([]);flash("Your voluntary ratings have been deleted.");
+    });
+  }
+  async function signOut(){
+    const s=session;clearSession();flash("Signed out. Access tokens were not stored in browser storage.");
+    if(s)try{await logout(s);}catch{flash("Local session cleared; remote session revocation could not be verified.",true);}
+  }
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#09080d',
-      color: '#f4f3f7',
-      fontFamily: 'var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      lineHeight: 1.5,
-    }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: 'rgba(9, 8, 13, 0.95)',
-        borderBottom: '1px solid #1f1d28',
-        padding: '16px 24px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-        backdropFilter: 'blur(12px)',
-      }}>
-        <div style={{
-          maxWidth: '1240px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Link href="/" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              textDecoration: 'none',
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: '18px',
-            }}>
-              <span style={{ color: '#ccff00' }}>✳</span>
-              PRIZMAA
-            </Link>
-            <span style={{
-              fontSize: '10px',
-              fontFamily: 'var(--font-geist-mono), monospace',
-              color: '#8e8b9e',
-              letterSpacing: '1px',
-              borderLeft: '1px solid #292833',
-              paddingLeft: '12px',
-            }}>
-              CULTURAL DIRECTORY &amp; ARCHIVE
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button
-              onClick={() => setCamouflage(true)}
-              style={{
-                background: 'transparent',
-                border: '1px solid #2e2c38',
-                color: '#8e8b9e',
-                fontSize: '11px',
-                padding: '4px 10px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-geist-mono), monospace',
-              }}
-            >
-              🛡️ Discreet Disguise (ESC)
-            </button>
-
-            <Link
-              href="/"
-              style={{
-                fontSize: '12px',
-                color: '#ccff00',
-                textDecoration: 'none',
-                fontFamily: 'var(--font-geist-mono), monospace',
-                fontWeight: 700,
-              }}
-            >
-              ← Back to Manifesto
-            </Link>
-          </div>
-        </div>
+    <main className={styles.shell}>
+      {covered?<div className={styles.cover} role="dialog" aria-modal="true">
+        <h1>Workspace notes</h1><p>Quiet space for notes and planning.</p>
+        <button onClick={()=>setCovered(false)}>Return to PRIZMAA</button>
+      </div>:null}
+      <header className={styles.header}>
+        <a className={styles.brand} href="/prizmaa/app"><span>✳</span> PRIZMAA <small>PRIVATE ALPHA</small></a>
+        <button className={styles.ghost} type="button" onClick={()=>setCovered(true)}>Quick hide ↗</button>
       </header>
-
-      {/* Navigation Tabs */}
-      <div style={{
-        borderBottom: '1px solid #1a1924',
-        backgroundColor: '#0c0b11',
-        padding: '0 24px',
-      }}>
-        <div style={{
-          maxWidth: '1240px',
-          margin: '0 auto',
-          display: 'flex',
-          gap: '24px',
-          overflowX: 'auto',
-        }}>
-          {[
-            { id: 'nodes', label: '1. Cultural Directory (Nodes)', count: filteredNodes.length },
-            { id: 'exhibitions', label: '2. Exhibitions & Research', count: EXHIBITIONS.length },
-            { id: 'opportunities', label: '3. Fellowships & Open Calls', count: OPPORTUNITIES.length },
-            { id: 'privacy', label: '4. Privacy & Anti-Censorship', count: null },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: isActive ? '2px solid #ccff00' : '2px solid transparent',
-                  padding: '16px 4px',
-                  color: isActive ? '#ccff00' : '#8e8b9e',
-                  fontSize: '12px',
-                  fontFamily: 'var(--font-geist-mono), monospace',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {tab.label}
-                {tab.count !== null && (
-                  <span style={{
-                    fontSize: '10px',
-                    backgroundColor: isActive ? '#ccff0022' : '#171620',
-                    color: isActive ? '#ccff00' : '#6e6b7c',
-                    padding: '2px 6px',
-                    borderRadius: '10px',
-                  }}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      <section className={styles.intro}>
+        <p className={styles.overline}>18+ · Invite only · Social connection, not a hookup chat</p>
+        <h1>Be visible <em>only on your terms.</em></h1>
+        <p>One authenticated workspace for your identity, private profile, consenting connections and safety. No fictional members, hidden location tracking or public directory.</p>
+      </section>
+      <section aria-live="polite" role="status" className={error?styles.error:styles.notice}>{message}</section>
+      {!session?(
+        <div className={styles.columns}>
+          <section className={styles.panel}>
+            <h2>Sign in</h2><p>Only invited, reviewed adults can access the private social workspace. Self-registration is disabled.</p>
+            <form onSubmit={loginMember} className={styles.form}>
+              <label>Email <input type="email" required autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)} maxLength={240}/></label>
+              <label>Password <input type="password" required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} minLength={8}/></label>
+              <button type="submit" disabled={busy}>{busy?"Checking…":"Sign in securely"}</button>
+            </form>
+            <p className={styles.fine}>Token stays in memory only. Refreshing the page ends this browser session. There is no public registration or pretend onboarding.</p>
+          </section>
+          <section className={styles.panel}>
+            <h2>What is actually available?</h2>
+            <p>Private membership and profile storage use Supabase authentication and row-level security. Matching and messages are permitted only under server-side mutual-consent rules.</p>
+            <div className={styles.rule}/><p><strong>Public discovery is OFF.</strong> Adult review and moderation are not automated. This is not a public launch.</p>
+            <p className={styles.fine}>This Next.js route replaces the disconnected cultural-demo interface. The former UI is preserved separately for reference.</p>
+          </section>
         </div>
-      </div>
-
-      {/* Main Content Area */}
-      <main style={{ maxWidth: '1240px', margin: '0 auto', padding: '40px 24px 80px' }}>
-        
-        {/* TAB 1: CULTURAL DIRECTORY */}
-        {activeTab === 'nodes' && (
-          <div>
-            {/* Filter Bar */}
-            <div style={{
-              backgroundColor: '#0f0e15',
-              border: '1px solid #1f1d28',
-              borderRadius: '8px',
-              padding: '16px 20px',
-              marginBottom: '32px',
-              display: 'flex',
-              gap: '16px',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', flex: 1 }}>
-                <input
-                  type="text"
-                  placeholder="Search space, city, or discipline..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    backgroundColor: '#09080d',
-                    border: '1px solid #2e2c38',
-                    color: '#fff',
-                    padding: '8px 14px',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    minWidth: '240px',
-                    outline: 'none',
-                  }}
-                />
-
-                <select
-                  value={selectedRegion}
-                  onChange={(e) => setSelectedRegion(e.target.value)}
-                  style={{
-                    backgroundColor: '#09080d',
-                    border: '1px solid #2e2c38',
-                    color: '#fff',
-                    padding: '8px 14px',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="ALL">All Regions</option>
-                  <option value="DE_WEST">Germany: Münsterland / West</option>
-                  <option value="DE_BERLIN">Germany: Berlin</option>
-                  <option value="NL_AMSTERDAM">Netherlands: Amsterdam</option>
-                  <option value="GR_THESSALONIKI">Greece: Thessaloniki</option>
-                  <option value="TR_ISTANBUL">Türkiye: Istanbul</option>
-                </select>
-
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  style={{
-                    backgroundColor: '#09080d',
-                    border: '1px solid #2e2c38',
-                    color: '#fff',
-                    padding: '8px 14px',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="ALL">All Categories</option>
-                  <option value="ARCHIVE">Archives &amp; Research</option>
-                  <option value="STUDIO">Ateliers &amp; Studios</option>
-                  <option value="COMMUNITY">Community Spaces</option>
-                  <option value="EXHIBITION">Exhibition Salons</option>
-                </select>
-              </div>
-
-              <div style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#8e8b9e' }}>
-                EXPLAINABLE CRITERIA &bull; NO LOCATION TRACKING
-              </div>
-            </div>
-
-            {/* Nodes Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-              gap: '20px',
-            }}>
-              {filteredNodes.map((n) => (
-                <article
-                  key={n.id}
-                  style={{
-                    backgroundColor: '#0f0e15',
-                    border: '1px solid #1f1d28',
-                    borderRadius: '8px',
-                    padding: '24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-geist-mono), monospace',
-                        fontWeight: 800,
-                        backgroundColor: '#1b1924',
-                        color: '#00f0ff',
-                        padding: '3px 8px',
-                        borderRadius: '3px',
-                        letterSpacing: '1px',
-                      }}>
-                        {n.category}
-                      </span>
-
-                      <span style={{
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-geist-mono), monospace',
-                        color: n.status === 'VERIFIED' ? '#ccff00' : '#8e8b9e',
-                        border: `1px solid ${n.status === 'VERIFIED' ? '#ccff0044' : '#292833'}`,
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                      }}>
-                        {n.status}
-                      </span>
+      ):(
+        <>
+          <div className={styles.accountLine}>
+            <span>Signed in: <strong>{session.email}</strong></span>
+            <span className={styles.state}>{approved?"Verified invited member":"Review required"}</span>
+            <button className={styles.ghost} type="button" onClick={signOut}>Sign out</button>
+          </div>
+          {!approved?(
+            <section className={styles.panel}>
+              <h2>Membership review is required</h2>
+              <p>Your identity is authenticated, but an active adult-reviewed invitation is missing. Profile changes, connections and messages remain locked.</p>
+              <p className={styles.fine}>This application cannot issue invitations or approve its own members. Only authorized human review may change membership status.</p>
+            </section>
+          ):(
+            <>
+              <nav className={styles.tabs} aria-label="Member workspace">
+                {([
+                  ["profile","My profile"],["connections","Connections"],["feedback","Feedback"],["safety","My controls"]
+                ] as const).map(([id,label])=><button className={tab===id?styles.tabActive:styles.tab}
+                  key={id} onClick={()=>setTab(id)} aria-current={tab===id?"page":undefined}>{label}</button>)}
+              </nav>
+              {tab==="profile"?(
+                <div className={styles.columns}>
+                  <section className={styles.panel}>
+                    <h2>Private profile</h2><p>Only you can access or update this profile. Discovery is locked off in the database.</p>
+                    <form className={styles.form} onSubmit={saveProfile}>
+                      <label>Chosen name <input required value={displayName} onChange={e=>setDisplayName(e.target.value)} minLength={2} maxLength={36}/></label>
+                      <label>General region (optional) <input value={region} onChange={e=>setRegion(e.target.value)} maxLength={44} placeholder="Münsterland — never an address"/></label>
+                      <label>About me (optional) <textarea value={bio} onChange={e=>setBio(e.target.value)} maxLength={400} rows={5}/></label>
+                      <p className={styles.privacy}>🔒 Visibility: PRIVATE · No coordinates or identity traits are requested.</p>
+                      <button disabled={busy} type="submit">Save private profile</button>
+                    </form>
+                  </section>
+                  <section className={styles.panel}>
+                    <h2>Privacy status</h2><p className={styles.state}>{profile?"Profile stored":"No profile yet"}</p>
+                    <p>Supabase enforces owner-only read/write access. Even a modified browser cannot publish this profile through the current API.</p>
+                    <p className={styles.fine}>Age verification is an invite-review state, not a facial scanner or a self-attested checkbox.</p>
+                  </section>
+                </div>
+              ):null}
+              {tab==="connections"?(
+                <div className={styles.columns}>
+                  <section className={styles.panel}>
+                    <h2>Mutual connections</h2><p>Connections are read from the real privacy-scoped database function. Public member discovery and unsolicited contact remain disabled.</p>
+                    <button disabled={busy} onClick={refreshConnections}>Refresh authorized connections</button>
+                    <div className={styles.stack}>
+                      {matches.length===0?<p className={styles.fine}>No connections available. Nothing has been fabricated.</p>:
+                      matches.map(p=><button className={styles.connection} key={p.user_id} onClick={()=>openConversation(p)} disabled={busy}>
+                        <strong>{p.display_name}</strong><span>{p.location_label||"Region private"}</span>
+                      </button>)}
                     </div>
-
-                    <h3 style={{ fontSize: '19px', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>
-                      {n.title}
-                    </h3>
-                    <div style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#ccff00', marginBottom: '12px' }}>
-                      📍 {n.city}
+                  </section>
+                  <section className={styles.panel}>
+                    <h2>{peer?peer.display_name:"Private conversation"}</h2>
+                    {!peer?<p>No conversation selected. Messaging requires a confirmed mutual connection.</p>:(
+                      <>
+                        <div className={styles.messages}>
+                          {messages.length===0?<p className={styles.fine}>No messages in this authorized conversation.</p>:
+                          messages.map(msg=><p className={msg.sender_id===session.userId?styles.sent:styles.received} key={msg.message_id}>{msg.body}</p>)}
+                        </div>
+                        <form className={styles.form} onSubmit={sendMessage}>
+                          <label>Message <textarea value={draft} maxLength={1000} rows={3} onChange={e=>setDraft(e.target.value)}/></label>
+                          <button type="submit" disabled={busy||!draft.trim()}>Send securely</button>
+                        </form>
+                        <div className={styles.row}>
+                          <button className={styles.ghost} disabled={busy} onClick={blockPeer}>Block connection</button>
+                        </div>
+                        <label className={styles.reportLabel}>Report reason
+                          <select value={reportReason} onChange={e=>setReportReason(e.target.value as ReportReason)}>
+                            {SAFE_REPORT_REASONS.map(x=><option key={x} value={x}>{x.replaceAll("_"," ")}</option>)}
+                          </select>
+                        </label>
+                        <button className={styles.ghost} disabled={busy} onClick={reportPeer}>Submit report</button>
+                      </>
+                    )}
+                  </section>
+                </div>
+              ):null}
+              {tab==="feedback"?(
+                <div className={styles.columns}>
+                  <section className={styles.panel}>
+                    <h2>Help shape PRIZMAA</h2><p>Voluntary product-quality ratings only. Private chats and personal orientation are never submitted for learning.</p>
+                    <form className={styles.form} onSubmit={sendFeedback}>
+                      <label>Product area <select value={feedbackArea} onChange={e=>setFeedbackArea(e.target.value as typeof feedbackArea)}>
+                        {FEEDBACK_AREAS.map(x=><option key={x} value={x}>{x}</option>)}
+                      </select></label>
+                      <label>Experience <select value={feedbackRating} onChange={e=>setFeedbackRating(Number(e.target.value))}>
+                        {[1,2,3,4,5].map(x=><option value={x} key={x}>{x} / 5</option>)}
+                      </select></label>
+                      <label className={styles.consent}><input type="checkbox" required checked={feedbackConsent} onChange={e=>setFeedbackConsent(e.target.checked)}/>
+                        I consent to storing this account-linked rating for up to 90 days. I can remove it myself.</label>
+                      <button disabled={busy||!feedbackConsent}>Send optional rating</button>
+                    </form>
+                  </section>
+                  <section className={styles.panel}><h2>My feedback</h2>
+                    <p>Saved ratings: <strong>{ratings.length}</strong></p>
+                    {ratings.slice(0,8).map(x=><p className={styles.item} key={x.feedback_id}>{x.area}: {x.rating}/5</p>)}
+                    <button className={styles.ghost} onClick={deleteFeedback} disabled={busy||ratings.length===0}>Delete my ratings</button>
+                  </section>
+                </div>
+              ):null}
+              {tab==="safety"?(
+                <div className={styles.columns}>
+                  <section className={styles.panel}><h2>Data & account controls</h2>
+                    <p>Download your private profile and optional product ratings. Full account export and account deletion are not automated in this alpha.</p>
+                    <div className={styles.stack}>
+                      <button className={styles.ghost} disabled={busy} onClick={exportOwnData}>Export profile and ratings</button>
+                      <button className={styles.danger} disabled={busy||!profile} onClick={deleteProfile}>Delete my private profile</button>
+                      <button className={styles.ghost} onClick={signOut}>Sign out</button>
                     </div>
-
-                    <p style={{ fontSize: '13px', color: '#b2afbe', lineHeight: 1.6, marginBottom: '16px' }}>
-                      {n.description}
-                    </p>
-
-                    <div style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#8e8b9e', marginBottom: '12px' }}>
-                      <strong>Disciplines:</strong> {n.disciplines}
-                    </div>
-                  </div>
-
-                  <div style={{
-                    borderTop: '1px solid #1a1924',
-                    paddingTop: '14px',
-                    marginTop: '16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}>
-                    <span style={{ fontSize: '10px', color: '#6e6b7c', fontFamily: 'var(--font-geist-mono), monospace' }}>
-                      ♿ {n.accessibility.slice(0, 36)}...
-                    </span>
-                    <button
-                      onClick={() => setSelectedNode(n)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#ccff00',
-                        fontSize: '11px',
-                        fontFamily: 'var(--font-geist-mono), monospace',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Details &amp; Access ↗
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: EXHIBITIONS & MOVING IMAGE */}
-        {activeTab === 'exhibitions' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
-            {EXHIBITIONS.map((e) => (
-              <div
-                key={e.id}
-                style={{
-                  backgroundColor: '#0f0e15',
-                  border: '1px solid #22202c',
-                  borderRadius: '8px',
-                  padding: '28px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'var(--font-geist-mono), monospace', color: '#00f0ff', marginBottom: '12px' }}>
-                    <span>{e.artist}</span>
-                    <span style={{ color: e.status === 'VERIFIED' ? '#ccff00' : '#8e8b9e' }}>{e.status}</span>
-                  </div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#fff', marginBottom: '6px' }}>{e.title}</h3>
-                  <div style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#ccff00', marginBottom: '14px' }}>
-                    {e.medium} &bull; {e.region}
-                  </div>
-                  <p style={{ fontSize: '13px', color: '#b5b2c2', lineHeight: 1.6 }}>{e.description}</p>
+                  </section>
+                  <section className={styles.panel}><h2>Abuse prevention</h2>
+                    <p>Mutual-match restrictions, block lists and report creation are enforced by server-side row security. Moderation staffing, age reviews and safety-response SLAs have not been verified.</p>
+                    <p className={styles.privacy}>Never share an exact address or private identification data on PRIZMAA.</p>
+                  </section>
                 </div>
-
-                <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #1a1924' }}>
-                  <Link
-                    href="/#partner"
-                    style={{
-                      fontSize: '11px',
-                      fontFamily: 'var(--font-geist-mono), monospace',
-                      color: '#ccff00',
-                      fontWeight: 700,
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Inquire for Screening / Exhibition Booking ↗
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* TAB 3: OPPORTUNITIES & FELLOWSHIPS */}
-        {activeTab === 'opportunities' && (
-          <div style={{ display: 'grid', gap: '20px' }}>
-            {OPPORTUNITIES.map((o) => (
-              <div
-                key={o.id}
-                style={{
-                  backgroundColor: '#0f0e15',
-                  border: '1px solid #1f1d28',
-                  borderRadius: '8px',
-                  padding: '28px',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#ccff00' }}>
-                    {o.organizer} &bull; {o.region}
-                  </span>
-                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-geist-mono), monospace', color: '#00f0ff' }}>
-                    DEADLINE: {o.deadline}
-                  </span>
-                </div>
-                <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>{o.title}</h3>
-                <div style={{ fontSize: '12px', color: '#8e8b9e', marginBottom: '14px', fontFamily: 'var(--font-geist-mono), monospace' }}>
-                  Stipend / Support: <strong style={{ color: '#fff' }}>{o.stipend}</strong>
-                </div>
-                <p style={{ fontSize: '13px', color: '#b5b2c2', lineHeight: 1.6 }}>{o.description}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* TAB 4: PRIVACY & RESILIENCE */}
-        {activeTab === 'privacy' && (
-          <div style={{
-            backgroundColor: '#0f0e15',
-            border: '1px solid #1f1d28',
-            borderRadius: '8px',
-            padding: '36px',
-            maxWidth: '860px',
-          }}>
-            <h2 style={{ fontSize: '26px', fontWeight: 900, marginBottom: '16px' }}>
-              Sovereign Privacy Architecture &amp; Anti-Censorship
-            </h2>
-            <p style={{ fontSize: '14px', color: '#b5b2c2', lineHeight: 1.7, marginBottom: '24px' }}>
-              PRIZMAA implements fail-closed privacy by design. We recognize that in jurisdictions with active anti-LGBTQ+ surveillance or restrictive laws, participating in queer cultural platforms can carry real risks.
-            </p>
-
-            <div style={{ display: 'grid', gap: '16px' }}>
-              <div style={{ backgroundColor: '#13121a', padding: '16px', borderRadius: '6px' }}>
-                <strong style={{ color: '#ccff00', display: 'block', marginBottom: '4px' }}>1. No Precise Geolocation</strong>
-                <p style={{ fontSize: '12px', color: '#8e8b9e', margin: 0 }}>
-                  We never query GPS coordinates. You explore nodes by selecting regional hubs voluntarily.
-                </p>
-              </div>
-
-              <div style={{ backgroundColor: '#13121a', padding: '16px', borderRadius: '6px' }}>
-                <strong style={{ color: '#00f0ff', display: 'block', marginBottom: '4px' }}>2. Emergency Camouflage Key</strong>
-                <p style={{ fontSize: '12px', color: '#8e8b9e', margin: 0 }}>
-                  Tapping the ESC key immediately disguises the page as a scholarly text on traditional paper marbling pigments.
-                </p>
-              </div>
-
-              <div style={{ backgroundColor: '#13121a', padding: '16px', borderRadius: '6px' }}>
-                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>3. Zero Advertising Networks</strong>
-                <p style={{ fontSize: '12px', color: '#8e8b9e', margin: 0 }}>
-                  No Meta Pixel, no Google Ads telemetry, and no data broker cookies.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Node Detail Modal */}
-      {selectedNode && (
-        <div
-          role="presentation"
-          onClick={() => setSelectedNode(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: '#121118',
-              border: '1px solid #2e2c38',
-              borderRadius: '12px',
-              maxWidth: '600px',
-              width: '100%',
-              padding: '32px',
-              position: 'relative',
-            }}
-          >
-            <button
-              onClick={() => setSelectedNode(null)}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: 'none',
-                border: 'none',
-                color: '#8e8b9e',
-                fontSize: '20px',
-                cursor: 'pointer',
-              }}
-            >
-              ×
-            </button>
-
-            <span style={{ fontSize: '10px', fontFamily: 'var(--font-geist-mono), monospace', color: '#ccff00', letterSpacing: '1px' }}>
-              {selectedNode.category} // {selectedNode.status}
-            </span>
-            <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#fff', margin: '8px 0 4px' }}>
-              {selectedNode.title}
-            </h2>
-            <div style={{ fontSize: '12px', fontFamily: 'var(--font-geist-mono), monospace', color: '#00f0ff', marginBottom: '16px' }}>
-              📍 {selectedNode.city}
-            </div>
-
-            <p style={{ fontSize: '14px', color: '#b5b2c2', lineHeight: 1.7, marginBottom: '20px' }}>
-              {selectedNode.description}
-            </p>
-
-            <div style={{ backgroundColor: '#09080d', padding: '16px', borderRadius: '6px', fontSize: '12px', marginBottom: '20px' }}>
-              <div style={{ color: '#8e8b9e', marginBottom: '6px' }}><strong>Disciplines:</strong> {selectedNode.disciplines}</div>
-              <div style={{ color: '#8e8b9e' }}><strong>Accessibility:</strong> {selectedNode.accessibility}</div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button
-                onClick={() => setSelectedNode(null)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#ccff00',
-                  color: '#000',
-                  fontFamily: 'var(--font-geist-mono), monospace',
-                  fontWeight: 800,
-                  fontSize: '12px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Close Details
-              </button>
-            </div>
-          </div>
-        </div>
+              ):null}
+            </>
+          )}
+        </>
       )}
-    </div>
+      <footer className={styles.footer}>PRIZMAA · Private alpha · DE / EN infrastructure · No public onboarding · No synthetic members · No claims of autonomous consciousness.</footer>
+    </main>
   );
 }
