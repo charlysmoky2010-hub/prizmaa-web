@@ -53,6 +53,22 @@ export async function ownData<T>(s:Session,path:string,opts:RequestInit={}) {
   if(!path.startsWith("/rest/v1/") && path!=="/auth/v1/logout") throw Error("Unexpected authenticated endpoint.");
   return transport<T>(path,opts,s.accessToken);
 }
+// Ask PostgREST only for this two-person, mutual-consent-protected thread.
+// RLS remains authoritative; browser-side filtering is never a privacy boundary.
+export function privateThreadQuery(selfId:string, peerId:string, limit=100):string {
+  const self=assertUUID(selfId);
+  const peer=assertUUID(peerId);
+  if(self.toLowerCase()===peer.toLowerCase())throw Error("Cannot open a conversation with yourself.");
+  if(!Number.isInteger(limit)||limit<1||limit>100)throw Error("Conversation page limit must be 1–100.");
+  const pairFilter=`(and(sender_id.eq.${self},recipient_id.eq.${peer}),and(sender_id.eq.${peer},recipient_id.eq.${self}))`;
+  return "/rest/v1/prizmaa_messages?" + new URLSearchParams({
+    select:"message_id,sender_id,recipient_id,body,created_at",
+    or:pairFilter,
+    order:"created_at.desc",
+    limit:String(limit)
+  }).toString();
+}
+
 export async function logout(s:Session) { return transport<null>("/auth/v1/logout",{method:"POST"},s.accessToken); }
 export function ownId(s:Session) {return encodeURIComponent(assertUUID(s.userId));}
 export function saveDownload(filename:string,data:unknown) {
