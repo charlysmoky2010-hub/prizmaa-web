@@ -3,7 +3,7 @@
 import { useState } from "react";
 import styles from "./app.module.css";
 import {
-  login, logout, ownData, ownId, verified, cleanProfile, assertUUID, saveDownload,
+  login, logout, ownData, ownId, verified, cleanProfile, assertUUID, saveDownload, privateThreadQuery,
   type Session, type Member, type Profile, type Rating, type Match, type Message,
   type ReportReason
 } from "@/lib/prizmaa/member-api";
@@ -98,13 +98,14 @@ export default function PrizmaaMemberApp() {
     await task(async()=>{
       assertUUID(p.user_id);
       if(!matches.some(m=>m.user_id===p.user_id))throw Error("This connection is not verified.");
-      const rows=await ownData<Message[]>(session,
-        "/rest/v1/prizmaa_messages?select=message_id,sender_id,recipient_id,body,created_at&or=(sender_id.eq."+
-        session.userId+",recipient_id.eq."+session.userId+")&order=created_at.asc&limit=100");
+      const rows=await ownData<Message[]>(session,privateThreadQuery(session.userId,p.user_id));
+      if(!Array.isArray(rows)||rows.some(m=>
+        !((m.sender_id===session.userId&&m.recipient_id===p.user_id)||
+          (m.sender_id===p.user_id&&m.recipient_id===session.userId))))
+        throw Error("Conversation data could not be safely verified.");
       setPeer(p);
-      setMessages(rows.filter(m=>[m.sender_id,m.recipient_id].includes(session.userId)&&
-        [m.sender_id,m.recipient_id].includes(p.user_id)));
-      flash("Conversation opened. Database rules restrict reads to authorized mutual matches.");
+      setMessages([...rows].reverse());
+      flash("Latest 100 messages for this authorized conversation loaded. Database RLS protects access.");
     });
   }
   async function sendMessage(e:React.FormEvent<HTMLFormElement>){
