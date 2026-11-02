@@ -38,9 +38,16 @@ async function loadPrivate() {
   byId("profile-form").hidden=!approved;
   byId("feedback-form").hidden=!approved;
   byId("feedback-delete").disabled=false;
-  const feedbackRows=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&order=created_at.desc&limit=600");
-  state.feedback=Array.isArray(feedbackRows)?feedbackRows:[];
-  notice(byId("feedback-status"),"Stored ratings on this account: "+state.feedback.length+" (no free-text responses).");
+  // Optional feedback is not an authorization gate. Failure must not log out an invited member.
+  try {
+    const feedbackRows=await api("/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&order=created_at.desc&limit=600");
+    if(!Array.isArray(feedbackRows)) throw Error("INVALID_FEEDBACK_HISTORY");
+    state.feedback=feedbackRows;
+    notice(byId("feedback-status"),"Stored ratings on this account: "+state.feedback.length+" (no free-text responses).");
+  } catch {
+    state.feedback=[];
+    notice(byId("feedback-status"),"Optional feedback history is temporarily unavailable. Your membership stays private.",true);
+  }
   byId("export-btn").disabled=false;
   byId("delete-btn").disabled=!approved;
   if(approved) {
@@ -135,7 +142,12 @@ byId("delete-btn").addEventListener("click",async()=>{
   if(window.prompt("Type DELETE PROFILE to remove your private profile. Your login account remains.")!=="DELETE PROFILE")return;
   byId("delete-btn").disabled=true;
   try{
-    await api("/rest/v1/prizmaa_private_profiles?user_id=eq."+encodeURIComponent(state.user.id),{method:"DELETE"});
+    const ownPath="/rest/v1/prizmaa_private_profiles?user_id=eq."+encodeURIComponent(state.user.id);
+    await api(ownPath,{method:"DELETE"});
+    // PostgREST may return 204 even when RLS or a missing row caused no deletion.
+    // Owner-scoped readback is required before claiming that private data is gone.
+    const remaining=await api(ownPath+"&select=user_id");
+    if(!Array.isArray(remaining)||remaining.length!==0)throw Error("DELETE_NOT_VERIFIED");
     state.profile=null;byId("profile-form").reset();
     notice(profileStatus,"Your private profile was deleted; login membership remains.");
   }catch{
