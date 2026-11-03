@@ -11,7 +11,8 @@ const layout=read("app/prizmaa/layout.tsx");
 const legacy=read("app/prizmaa/showcase/page.tsx");
 
 test("one canonical application path, not old detached cultural demo",()=>{
-  assert.match(root,/redirect\('\/prizmaa\/app'\)/);
+  assert.match(root,/function PrizmaaWelcome/);
+  assert.match(root,/href="\/prizmaa\/app"/);
   assert.match(page,/loginMember/);
   assert.match(page,/saveProfile/);
   assert.match(page,/refreshConnections/);
@@ -61,9 +62,32 @@ test("consent, safety and honest incomplete-status disclosure visible",()=>{
 });
 
 const home=read("app/page.tsx");
-test("site root and /prizmaa point to one member application",()=>{
-  assert.match(home,/redirect\('\/prizmaa\/app'\)/);
-  assert.match(root,/redirect\('\/prizmaa\/app'\)/);
+const welcomeCss=read("app/prizmaa/welcome.module.css");
+test("the homepage opens the safe landing and preserves restricted member access",()=>{
+  assert.match(home,/redirect\(["']\/prizmaa["']\)/);
+  assert.match(root,/function PrizmaaWelcome/);
+  assert.match(root,/href="\/prizmaa\/app"/);
+  assert.doesNotMatch(root,/\/auth\/v1\/signup/);
+  assert.doesNotMatch(root,/localStorage|sessionStorage|service_role|sb_secret_/);
+});
+test("landing honestly describes availability and has no fictional users",()=>{
+  assert.match(root,/18\+.*INVITE-ONLY PRIVATE BETA/);
+  assert.match(root,/Registration and public discovery are not open/);
+  assert.match(root,/Service availability is not yet verified/);
+  assert.match(root,/Interface illustration · Not real profiles, activity or messages/);
+  assert.match(root,/Age-review operations, moderation response times/);
+  assert.match(root,/Connections with consent/);
+  assert.match(root,/Private conversations/);
+  assert.doesNotMatch(root,/Join now|Sign up now|members online|active users/i);
+});
+test("responsive landing and basic accessibility stay in the product",()=>{
+  assert.match(root,/Skip to content/);
+  assert.match(root,/aria-label="Main navigation"/);
+  assert.match(root,/id="how-it-works"/);
+  assert.match(root,/id="privacy"/);
+  assert.match(welcomeCss,/@media \(max-width: 620px\)/);
+  assert.match(welcomeCss,/@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(welcomeCss,/focus-visible/);
 });
 
 test("private messages request scopes BOTH users before applying the newest-100 limit",()=>{
