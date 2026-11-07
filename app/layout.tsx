@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PRIZMAA — Beyond Identity. Into Possibility.",
-  description: "An independent digital ecosystem for queer culture, creativity, community, opportunity, and belonging across Germany, the Netherlands, the Mediterranean, and Türkiye.",
+  title: "PRIZMAA — Connect on your terms",
+  description: "A privacy-first space being built for gay adults 18+ to meet, connect, and talk. Invitation-only private beta; public registration is not open.",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

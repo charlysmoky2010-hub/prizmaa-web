@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'none'; object-src 'none'">
+<title>PRIZMAA · Adaptive Learning Proof</title><link rel="stylesheet" href="./styles.css"><script type="module" src="./proof.mjs"></script></head>
+<body><main class="container">
+<header class="top"><div class="logo"><b>✳</b> PRIZMAA <small>/ MODEL PROOF</small></div><a href="./index.html">← Private beta</a></header>
+<section class="hero"><div class="eyebrow">Independent sandbox · no real participants</div>
+<h1>Show the evidence. <span class="accent">Not the hype.</span></h1>
+<p>This demonstrates how the product-quality learner changes its decision when ratings change. All people and scores here are <strong>synthetic, kept only in your browser</strong>. The production database is separate.</p>
+<span class="tag">Same decision logic as tested in GitHub CI</span></section>
+<section class="grid">
+<div class="card">
+<h2>1. Choose a product-quality signal</h2>
+<label class="input"><span>Quality area</span><select id="topic"><option value="privacy">Privacy controls</option><option value="accessibility">Accessibility</option><option value="onboarding">Onboarding</option><option value="navigation">Navigation</option><option value="profile">Private profile</option><option value="reliability">Reliability</option></select></label>
+<div class="rule"></div>
+<div class="stack">
+<button id="empty" class="secondary">Scenario A · No user data</button>
+<button id="flood" class="secondary">Scenario B · 1 user sends 1,000 bad ratings</button>
+<button id="negative">Scenario C · 10 distinct users give poor ratings</button>
+<button id="recovery" class="secondary">Scenario D · Better feedback arrives</button>
+</div>
+<p class="detail">The sample size and Bayesian-smoothed mean change with each scenario. Low-quality feedback never silently edits production code.</p>
+</div>
+<div class="card" aria-live="polite">
+<h2>2. Actual evaluation result</h2>
+<div id="decision-tag" class="tag">Not evaluated</div>
+<div id="explanation" class="status">Choose a scenario to run the model.</div>
+<div class="stats">
+ <div class="stat"><small>Rating events</small><strong id="events">0</strong></div>
+ <div class="stat"><small>Distinct synthetic members</small><strong id="members">0</strong></div>
+ <div class="stat"><small>Smoothed rating</small><strong id="smoothed">3.00</strong></div>
+</div>
+<p><strong>Suggested action:</strong> <span id="suggestion">None</span></p>
+<p><strong>Priority:</strong> <span id="priority">0</span> / 100</p>
+<p id="safety" class="note">Safety gate remains engaged: human review required before any changes.</p>
+</div></section>
+<section class="card" style="margin-top:24px"><h2>3. Reproducible proof</h2>
+<p id="validation" role="status">Validation has not run.</p>
+<p>This is a <strong>statistical evidence-weighting and recommendation system</strong>, not a self-retrained large language model. Until real verified adults join the private beta and opt in, production has no genuine user feedback to learn from.</p>
+<p>Safety boundary: zero location profiling, no automatic social exposure, and no unsupervised deployment.</p>
+</section>
+<footer>PRIZMAA · Synthetic demonstration only · No network connections · No stored test data · No identity tracking.</footer>
+</main></body></html>
