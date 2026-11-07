@@ -162,7 +162,7 @@ test("pending adult invitations never fetch private data; optional feedback fail
 test("multilingual interactive design experience uses no invented member data",()=>{
   const experience=read("app/prizmaa/experience/page.tsx");
   const css=read("app/prizmaa/experience/experience.module.css");
-  assert.match(root,/href="\/prizmaa\/experience"/);
+  assert.match(root,/import PrizmaaExperience from/);
   assert.match(experience,/function PrizmaaExperience/);
   assert.match(experience,/type Language = "en" \| "tr" \| "de"/);
   for(const space of ["flirt","friends","circles","experiences"]){
