@@ -154,3 +154,23 @@ test("pending adult invitations never fetch private data; optional feedback fail
     assert.equal(verifiedWithProfileOutage.feedbackUnavailable,false);
   }finally{globalThis.fetch=previous;}
 });
+
+test("multilingual interactive design experience uses no invented member data",()=>{
+  const experience=read("app/prizmaa/experience/page.tsx");
+  const css=read("app/prizmaa/experience/experience.module.css");
+  assert.match(root,/href="\/prizmaa\/experience"/);
+  assert.match(experience,/function PrizmaaExperience/);
+  assert.match(experience,/type Language = "en" \| "tr" \| "de"/);
+  for(const space of ["flirt","friends","circles","experiences"]){
+    assert.match(experience,new RegExp(space));
+  }
+  assert.match(experience,/role="tablist"/);
+  assert.match(experience,/aria-selected=/);
+  assert.match(experience,/No live profiles, connections or events are displayed/);
+  assert.match(experience,/Registration and public discovery are not open/);
+  assert.match(experience,/href="\/prizmaa\/app"/);
+  assert.doesNotMatch(experience,/localStorage|sessionStorage|service_role|sb_secret_|createUser\(/);
+  assert.match(css,/@media\(max-width:740px\)/);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+  assert.match(css,/focus-visible/);
+});
