@@ -69,6 +69,40 @@ export function privateThreadQuery(selfId:string, peerId:string, limit=100):stri
   }).toString();
 }
 
+export type WorkspaceSnapshot = {
+  member: Member|null;
+  profile: Profile|null;
+  ratings: Rating[];
+  profileUnavailable: boolean;
+  feedbackUnavailable: boolean;
+};
+
+// Authoritative membership is required; unavailable OPTIONAL services do not revoke a valid login.
+export async function loadMemberWorkspace(s:Session):Promise<WorkspaceSnapshot> {
+  const id=ownId(s);
+  const rows=await ownData<Member[]>(s,
+    "/rest/v1/prizmaa_private_members?select=member_role,membership_state,adult_review_state&user_id=eq."+id);
+  if(!Array.isArray(rows)||rows.length>1)throw Error("Membership status could not be verified.");
+  const member=rows[0]||null;
+  if(!verified(member))
+    return {member,profile:null,ratings:[],profileUnavailable:false,feedbackUnavailable:false};
+
+  const [profiles,feedback]=await Promise.allSettled([
+    ownData<Profile[]>(s,"/rest/v1/prizmaa_private_profiles?select=*&user_id=eq."+id),
+    ownData<Rating[]>(s,"/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&limit=600")
+  ]);
+  let profile:Profile|null=null;
+  let profileUnavailable=true;
+  if(profiles.status==="fulfilled" && Array.isArray(profiles.value) &&
+      profiles.value.length<=1 && profiles.value.every(row=>row.user_id===s.userId)) {
+    profile=profiles.value[0]||null;
+    profileUnavailable=false;
+  }
+  const feedbackUnavailable=feedback.status!=="fulfilled"||!Array.isArray(feedback.value);
+  const ratings=feedback.status==="fulfilled"&&Array.isArray(feedback.value)?feedback.value:[];
+  return {member,profile,ratings,profileUnavailable,feedbackUnavailable};
+}
+
 export async function logout(s:Session) { return transport<null>("/auth/v1/logout",{method:"POST"},s.accessToken); }
 export function ownId(s:Session) {return encodeURIComponent(assertUUID(s.userId));}
 export function saveDownload(filename:string,data:unknown) {
