@@ -3,7 +3,7 @@
 import { useState } from "react";
 import styles from "./app.module.css";
 import {
-  login, logout, ownData, ownId, verified, cleanProfile, assertUUID, saveDownload, privateThreadQuery,
+  login, logout, ownData, ownId, verified, cleanProfile, assertUUID, saveDownload, privateThreadQuery, loadMemberWorkspace,
   type Session, type Member, type Profile, type Rating, type Match, type Message,
   type ReportReason
 } from "@/lib/prizmaa/member-api";
@@ -19,6 +19,8 @@ export default function PrizmaaMemberApp() {
   const [member,setMember]=useState<Member|null>(null);
   const [profile,setProfile]=useState<Profile|null>(null);
   const [ratings,setRatings]=useState<Rating[]>([]);
+  const [profileUnavailable,setProfileUnavailable]=useState(false);
+  const [feedbackUnavailable,setFeedbackUnavailable]=useState(false);
   const [matches,setMatches]=useState<Match[]>([]);
   const [peer,setPeer]=useState<Match|null>(null);
   const [messages,setMessages]=useState<Message[]>([]);
@@ -41,6 +43,7 @@ export default function PrizmaaMemberApp() {
   function clearSession(){
     setSession(null);setMember(null);setProfile(null);setRatings([]);setMatches([]);setPeer(null);
     setMessages([]);setPassword("");setDraft("");setFeedbackConsent(false);setTab("profile");
+    setProfileUnavailable(false);setFeedbackUnavailable(false);
   }
   async function task(action:()=>Promise<void>) {
     if(busy)return;
@@ -54,24 +57,30 @@ export default function PrizmaaMemberApp() {
     await task(async()=>{
       const s=await login(email,password);
       setPassword("");
-      const id=ownId(s);
-      const [memberRows,profileRows,feedbackRows]=await Promise.all([
-        ownData<Member[]>(s,"/rest/v1/prizmaa_private_members?select=member_role,membership_state,adult_review_state&user_id=eq."+id),
-        ownData<Profile[]>(s,"/rest/v1/prizmaa_private_profiles?select=*&user_id=eq."+id),
-        ownData<Rating[]>(s,"/rest/v1/prizmaa_product_feedback?select=feedback_id,area,rating,created_at&user_id=eq."+id+"&limit=600")
-      ]);
-      setSession(s);setMember(memberRows[0]||null);
-      const p=profileRows[0]||null;
-      setProfile(p);setRatings(feedbackRows);
-      setDisplayName(p?.display_name||"");setRegion(p?.location_label||"");setBio(p?.bio||"");
-      flash(verified(memberRows[0]||null)?
-        "Authenticated private workspace. Your profile is hidden from public discovery.":
-        "Authenticated, but verified adult invitation is required. Personal editing is locked.");
+      const snapshot=await loadMemberWorkspace(s);
+      setSession(s);
+      setMember(snapshot.member);
+      setProfile(snapshot.profile);
+      setRatings(snapshot.ratings);
+      setProfileUnavailable(snapshot.profileUnavailable);
+      setFeedbackUnavailable(snapshot.feedbackUnavailable);
+      setDisplayName(snapshot.profile?.display_name||"");
+      setRegion(snapshot.profile?.location_label||"");
+      setBio(snapshot.profile?.bio||"");
+      if(!verified(snapshot.member))
+        flash("Signed in. Adult invitation review is pending; profile and social access remain locked.");
+      else if(snapshot.profileUnavailable)
+        flash("Signed in, but private profile storage could not be verified. Editing is disabled.",true);
+      else if(snapshot.feedbackUnavailable)
+        flash("Signed in. Optional feedback is unavailable; your profile and membership remain accessible.");
+      else
+        flash("Authenticated private workspace. Your profile is hidden from public discovery.");
     });
   }
   async function saveProfile(e:React.FormEvent<HTMLFormElement>){
     e.preventDefault();if(!session||!approved)return;
     await task(async()=>{
+      if(profileUnavailable)throw Error("Profile edits are blocked until private storage is verified.");
       const payload={...cleanProfile(displayName,region,bio),user_id:session.userId};
       const rows=await ownData<Profile[]>(session,
         "/rest/v1/prizmaa_private_profiles?on_conflict=user_id",
@@ -256,12 +265,13 @@ export default function PrizmaaMemberApp() {
                 <div className={styles.columns}>
                   <section className={styles.panel}>
                     <h2>Private profile</h2><p>Only you can access or update this profile. Discovery is locked off in the database.</p>
-                    <form className={styles.form} onSubmit={saveProfile}>
+                    {profileUnavailable?<p role="alert" className={styles.fine}>Private profile storage is temporarily unavailable. Editing is disabled; your account remains signed in.</p>:null}
+                     <form className={styles.form} onSubmit={saveProfile}>
                       <label>Chosen name <input required value={displayName} onChange={e=>setDisplayName(e.target.value)} minLength={2} maxLength={36}/></label>
                       <label>General region (optional) <input value={region} onChange={e=>setRegion(e.target.value)} maxLength={44} placeholder="Münsterland — never an address"/></label>
                       <label>About me (optional) <textarea value={bio} onChange={e=>setBio(e.target.value)} maxLength={400} rows={5}/></label>
                       <p className={styles.privacy}>🔒 Visibility: PRIVATE · No coordinates or identity traits are requested.</p>
-                      <button disabled={busy} type="submit">Save private profile</button>
+                      <button disabled={busy||profileUnavailable} type="submit">Save private profile</button>
                     </form>
                   </section>
                   <section className={styles.panel}>
@@ -326,7 +336,7 @@ export default function PrizmaaMemberApp() {
                     </form>
                   </section>
                   <section className={styles.panel}><h2>My feedback</h2>
-                    <p>Saved ratings: <strong>{ratings.length}</strong></p>
+                    <p>{feedbackUnavailable?"Optional feedback history is unavailable; no count is assumed.":<>Saved ratings: <strong>{ratings.length}</strong></>}</p>
                     {ratings.slice(0,8).map(x=><p className={styles.item} key={x.feedback_id}>{x.area}: {x.rating}/5</p>)}
                     <button className={styles.ghost} onClick={deleteFeedback} disabled={busy||ratings.length===0}>Delete my ratings</button>
                   </section>
