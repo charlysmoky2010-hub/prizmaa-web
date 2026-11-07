@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
-import {privateThreadQuery} from "../lib/prizmaa/member-api.ts";
+import {privateThreadQuery, loadMemberWorkspace} from "../lib/prizmaa/member-api.ts";
 const read=p=>readFileSync(resolve(process.cwd(),p),"utf8");
 const page=read("app/prizmaa/app/page.tsx");
 const adapter=read("lib/prizmaa/member-api.ts");
@@ -107,4 +107,50 @@ test("private messages request scopes BOTH users before applying the newest-100 
   assert.match(page,/privateThreadQuery\(session\.userId,p\.user_id\)/);
   assert.match(page,/\[\.\.\.rows\]\.reverse\(\)/);
   assert.doesNotMatch(page,/sender_id\.eq\."\+\s*session\.userId/);
+});
+
+test("pending adult invitations never fetch private data; optional feedback failure cannot invalidate membership",async()=>{
+  const previous=globalThis.fetch;
+  const userId="11111111-1111-4111-8111-111111111111";
+  const session={userId,accessToken:"mock-token-for-test",email:"preview@example.invalid"};
+  const requests=[];
+  let review="pending";
+  let feedbackOffline=false;
+  let profileOffline=false;
+  globalThis.fetch=async (url)=>{
+    const pathname=new URL(String(url)).pathname;
+    requests.push(pathname);
+    if(pathname==="/rest/v1/prizmaa_private_members")
+      return new Response(JSON.stringify([{member_role:"tester",membership_state:"active",adult_review_state:review}]),{status:200,headers:{"content-type":"application/json"}});
+    if(pathname==="/rest/v1/prizmaa_private_profiles")
+      return profileOffline?new Response("Unavailable",{status:503}):
+        new Response(JSON.stringify([{user_id:userId,display_name:"Tester",location_label:"",bio:"",visible_in_discovery:false}]),{status:200,headers:{"content-type":"application/json"}});
+    if(pathname==="/rest/v1/prizmaa_product_feedback")
+      return feedbackOffline?new Response("Unavailable",{status:503}):
+        new Response("[]",{status:200,headers:{"content-type":"application/json"}});
+    throw Error("Unexpected endpoint: "+pathname);
+  };
+  try {
+    const pending=await loadMemberWorkspace(session);
+    assert.equal(pending.member?.adult_review_state,"pending");
+    assert.equal(pending.profile,null);
+    assert.deepEqual(requests,["/rest/v1/prizmaa_private_members"],"pending members must never read restricted profile data");
+
+    review="verified"; feedbackOffline=true;requests.length=0;
+    const verifiedWithFeedbackOutage=await loadMemberWorkspace(session);
+    assert.equal(verifiedWithFeedbackOutage.member?.adult_review_state,"verified");
+    assert.equal(verifiedWithFeedbackOutage.profile?.user_id,userId);
+    assert.equal(verifiedWithFeedbackOutage.profileUnavailable,false);
+    assert.equal(verifiedWithFeedbackOutage.feedbackUnavailable,true);
+    assert.deepEqual(verifiedWithFeedbackOutage.ratings,[]);
+    assert.ok(requests.includes("/rest/v1/prizmaa_private_profiles"));
+    assert.ok(requests.includes("/rest/v1/prizmaa_product_feedback"));
+
+    profileOffline=true;feedbackOffline=false;requests.length=0;
+    const verifiedWithProfileOutage=await loadMemberWorkspace(session);
+    assert.equal(verifiedWithProfileOutage.member?.adult_review_state,"verified");
+    assert.equal(verifiedWithProfileOutage.profile,null);
+    assert.equal(verifiedWithProfileOutage.profileUnavailable,true);
+    assert.equal(verifiedWithProfileOutage.feedbackUnavailable,false);
+  }finally{globalThis.fetch=previous;}
 });
