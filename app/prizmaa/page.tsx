@@ -36,6 +36,7 @@ export default function PrizmaaWelcome() {
         </Link>
         <nav className={styles.nav} aria-label="Main navigation">
           <a href="#how-it-works">How it works</a>
+          <Link href="/prizmaa/experience">Interactive design</Link>
           <a href="#privacy">Privacy</a>
           <Link className={styles.navLogin} href="/prizmaa/app">
             Member sign in <span aria-hidden="true">↗</span>
@@ -63,6 +64,7 @@ export default function PrizmaaWelcome() {
             <a href="#how-it-works" className={styles.secondary}>
               Explore the vision <span aria-hidden="true">↓</span>
             </a>
+            <Link href="/prizmaa/experience" className={styles.secondary}>Explore interactive V2 ↗</Link>
           </div>
           <p className={styles.availability}>
             Invitations only. Registration and public discovery are not open.
