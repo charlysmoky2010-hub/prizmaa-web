@@ -29,7 +29,7 @@ test("real Auth and protected PostgREST, no privileged keys or simulated success
   assert.match(adapter,/\/auth\/v1\/token\?grant_type=password/);
   assert.match(adapter,/\/auth\/v1\/user/);
   assert.match(adapter,/sb_publishable_/);
-  assert.match(page,/\/rest\/v1\/prizmaa_private_members/);
+  assert.match(adapter,/\/rest\/v1\/prizmaa_private_members/);
   assert.match(page,/\/rest\/v1\/prizmaa_private_profiles/);
   assert.match(page,/\/rest\/v1\/prizmaa_messages/);
   assert.match(page,/\/rest\/v1\/prizmaa_blocks/);
